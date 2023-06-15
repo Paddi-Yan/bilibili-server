@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.UserInfoMapper">
+    <update id="updateUserInfo" parameterType="com.paddi.entity.po.UserInfo">
+        update
+            t_user_info
+        set
+            <if test="nick != null and nick != '' ">
+                nick = #{nick},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+            <if test="sign != null">
+                sign = #{sign},
+            </if>
+            <if test="birth != null and birth != '' ">
+                birth = #{birth},
+            </if>
+            <if test="gender != null and gender != '' ">
+                gender = #{gender},
+            </if>
+            update_time = #{updateTime}
+        where
+            user_id = #{userId}
+    </update>
+</mapper>
