@@ -1,6 +1,7 @@
 package com.paddi.handler;
 
 import com.paddi.core.ret.Result;
+import com.paddi.exception.BadRequestException;
 import com.paddi.exception.ConditionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = ConditionException.class)
     @ResponseBody
     public Result<String> conditionExceptionHandler(ConditionException e) {
+        log.error(e.getMessage(), e);
+        return Result.error(e.getMessage(), e.getCode());
+    }
+
+    @ExceptionHandler(value = BadRequestException.class)
+    @ResponseBody
+    public Result<String> badRequestExceptionHandler(BadRequestException e) {
         log.error(e.getMessage(), e);
         return Result.error(e.getMessage(), e.getCode());
     }

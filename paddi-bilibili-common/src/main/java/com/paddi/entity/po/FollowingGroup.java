@@ -1,6 +1,9 @@
 package com.paddi.entity.po;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -10,11 +13,14 @@ import java.time.LocalDateTime;
  * @CreatedTime: 2023年06月16日 00:38:45
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class FollowingGroup {
 
     private Long id;
 
-    private Long userid;
+    private Long userId;
 
     private String name;
 

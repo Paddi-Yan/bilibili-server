@@ -2,17 +2,22 @@ package com.paddi.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.paddi.entity.dto.FollowingGroupDTO;
 import com.paddi.entity.dto.UserFollowingDTO;
 import com.paddi.entity.po.FollowingGroup;
 import com.paddi.entity.po.User;
 import com.paddi.entity.po.UserFollowing;
 import com.paddi.entity.po.UserInfo;
+import com.paddi.entity.vo.FollowingGroupTagVO;
 import com.paddi.entity.vo.FollowingGroupVO;
+import com.paddi.entity.vo.UserFollowingVO;
 import com.paddi.entity.vo.UserInfoVO;
 import com.paddi.enums.FollowingGroupEnum;
 import com.paddi.enums.SortType;
+import com.paddi.exception.BadRequestException;
 import com.paddi.exception.ConditionException;
 import com.paddi.factory.UserFollowingSortStrategyFactory;
+import com.paddi.mapper.FollowingGroupMapper;
 import com.paddi.mapper.UserFollowingMapper;
 import com.paddi.service.FollowingGroupService;
 import com.paddi.service.UserFollowingService;
@@ -23,10 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,6 +42,9 @@ public class UserFollowingServiceImpl implements UserFollowingService {
 
     @Autowired
     private UserFollowingMapper userFollowingMapper;
+
+    @Autowired
+    private FollowingGroupMapper followingGroupMapper;
 
     @Autowired
     private FollowingGroupService followingGroupService;
@@ -106,14 +111,18 @@ public class UserFollowingServiceImpl implements UserFollowingService {
         }
 
         //根据不同排序类型进行排序
-        UserFollowingsSortStrategy sortStrategy = UserFollowingSortStrategyFactory.createSortStrategy(SortType.getSortType(sortType));
+        SortType sortTypeEnum = SortType.getSortType(sortType);
+        if(sortTypeEnum == null) {
+            throw new BadRequestException("非法的排序类型");
+        }
+        UserFollowingsSortStrategy sortStrategy = UserFollowingSortStrategyFactory.createSortStrategy(sortTypeEnum);
         sortStrategy.sort(userFollowings);
 
         //获取用户的关注分组
         List<FollowingGroup> followingGroupList = followingGroupService.getByUserId(userId);
         //创建全部关注列表
         FollowingGroupVO allGroup = FollowingGroupVO.builder()
-                .userid(userId)
+                .userId(userId)
                 .name(FollowingGroupEnum.ALL.getName())
                 .type(FollowingGroupEnum.ALL.getType())
                 .followingUserInfoList(userInfoVOList)
@@ -138,6 +147,77 @@ public class UserFollowingServiceImpl implements UserFollowingService {
         return userFollowingGroupList;
     }
 
+    /**
+     * 第一步：获取当前用户的粉丝列表
+     * 第二步：根据粉丝的用户id查询基本信息
+     * 第三步：查询当前用户是否已经关注该粉丝
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<UserFollowingVO> getUserFans(Long userId) {
+        //获取粉丝列表
+        List<UserFollowing> fansList = userFollowingMapper.selectList(new LambdaQueryWrapper<UserFollowing>().eq(UserFollowing :: getFollowingId, userId));
+        Set<Long> fanIdList = fansList.stream().map(UserFollowing :: getUserId).collect(Collectors.toSet());
+        List<UserInfo> fansUserInfoList = new ArrayList<>();
+        //获取粉丝具体用户信息
+        if(CollectionUtil.isNotEmpty(fansList)) {
+            fansUserInfoList = userService.getUserByUserIds(fanIdList);
+        }
+        //查询该用户的关注列表
+        List<UserFollowing> userFollowingsList = userFollowingMapper.selectList(new LambdaQueryWrapper<UserFollowing>().eq(UserFollowing :: getUserId, userId));
+        Set<Long> userFollowingsIdSet = new HashSet<>();
+        if(CollectionUtil.isNotEmpty(userFollowingsList)) {
+            userFollowingsIdSet = userFollowingsList.stream().map(UserFollowing::getFollowingId).collect(Collectors.toSet());
+        }
+
+        Map<Long, UserInfo> userIdToUserInfo = fansUserInfoList.parallelStream().collect(Collectors.toMap(UserInfo :: getUserId, Function.identity()));
+        List<UserFollowingVO> result = new ArrayList<>();
+        //遍历粉丝列表
+        for(UserFollowing fan : fansList) {
+            Long fanUserId = fan.getUserId();
+            UserInfo userInfo = userIdToUserInfo.get(fanUserId);
+            fan.setUserInfo(userInfo);
+            //未互相关注
+            userInfo.setFollowed(false);
+
+            //转化成VO对象
+            UserInfoVO userInfoVO = new UserInfoVO(userInfo);
+            UserFollowingVO fansFollowingVO = new UserFollowingVO(fan);
+            fansFollowingVO.setUserInfoVO(userInfoVO);
+
+            //查看是否互相关注
+            if(userFollowingsIdSet.contains(fanUserId)) {
+                userInfoVO.setFollowed(true);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Long addUserFollowingGroups(FollowingGroupDTO followingGroupDTO) {
+        FollowingGroup followingGroup = FollowingGroup.builder()
+                                             .userId(followingGroupDTO.getUserId())
+                                             .name(followingGroupDTO.getName())
+                                             .type(FollowingGroupEnum.CUSTOM.getType())
+                                             .createTime(LocalDateTime.now())
+                                             .build();
+        followingGroupMapper.insert(followingGroup);
+        return followingGroup.getId();
+    }
+
+    @Override
+    public List<FollowingGroupTagVO> getUserFollowingGroups(Long userId) {
+        //查询用户字对应的分组以及系统的默认分组
+        List<FollowingGroup> followingGroups
+                = followingGroupMapper.selectList(new LambdaQueryWrapper<FollowingGroup>()
+                .eq(FollowingGroup :: getUserId, userId)
+                .or(wrapper -> wrapper.in(FollowingGroup :: getType, FollowingGroupEnum.getDefaultGroupType())));
+        List<FollowingGroupTagVO> followingGroupTags = followingGroups.parallelStream()
+                                                           .map(followingGroup -> new FollowingGroupTagVO(followingGroup.getId(), followingGroup.getName(), followingGroup.getType()))
+                                                           .collect(Collectors.toList());
+        return followingGroupTags;
+    }
 
 
 }

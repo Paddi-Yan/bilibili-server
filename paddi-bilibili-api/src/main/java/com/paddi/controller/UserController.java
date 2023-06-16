@@ -1,10 +1,9 @@
 package com.paddi.controller;
 
 import com.paddi.core.ret.Result;
-import com.paddi.entity.dto.UserInfoUpdateDTO;
-import com.paddi.entity.dto.UserLoginDTO;
-import com.paddi.entity.dto.UserRegistryDTO;
-import com.paddi.entity.dto.UserUpdateDTO;
+import com.paddi.entity.dto.*;
+import com.paddi.entity.vo.PageResult;
+import com.paddi.entity.vo.UserInfoVO;
 import com.paddi.entity.vo.UserVO;
 import com.paddi.service.UserService;
 import com.paddi.support.UserSupport;
@@ -63,5 +62,11 @@ public class UserController {
         Long userId = userSupport.getCurrentUserId();
         userService.updateUserInfo(userId, userInfoUpdateDTO);
         return Result.success();
+    }
+
+    @GetMapping("/user-infos")
+    public Result<PageResult<UserInfoVO>> getUserInfoPageResult(@RequestBody UserInfoPageQueryDTO pageQueryDTO) {
+        Long userId = userSupport.getCurrentUserId();
+        return Result.success(userService.getUserInfoPageResult(pageQueryDTO, userId));
     }
 }

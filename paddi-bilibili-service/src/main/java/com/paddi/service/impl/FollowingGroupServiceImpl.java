@@ -32,7 +32,7 @@ public class FollowingGroupServiceImpl implements FollowingGroupService {
 
     @Override
     public List<FollowingGroup> getByUserId(Long userId) {
-        return followingGroupMapper.selectList(new LambdaQueryWrapper<FollowingGroup>().eq(FollowingGroup::getUserid, userId));
+        return followingGroupMapper.selectList(new LambdaQueryWrapper<FollowingGroup>().eq(FollowingGroup:: getUserId, userId));
     }
 
 }

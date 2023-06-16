@@ -1,11 +1,10 @@
 package com.paddi.service;
 
-import com.paddi.entity.dto.UserInfoUpdateDTO;
-import com.paddi.entity.dto.UserLoginDTO;
-import com.paddi.entity.dto.UserRegistryDTO;
-import com.paddi.entity.dto.UserUpdateDTO;
+import com.paddi.entity.dto.*;
 import com.paddi.entity.po.User;
 import com.paddi.entity.po.UserInfo;
+import com.paddi.entity.vo.PageResult;
+import com.paddi.entity.vo.UserInfoVO;
 import com.paddi.entity.vo.UserVO;
 
 import java.util.List;
@@ -30,4 +29,6 @@ public interface UserService {
     User getUserById(Long userId);
 
     List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds);
+
+    PageResult<UserInfoVO> getUserInfoPageResult(UserInfoPageQueryDTO pageQueryDTO, Long userId);
 }

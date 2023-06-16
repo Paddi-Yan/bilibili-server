@@ -2,20 +2,23 @@ package com.paddi.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.paddi.constants.UserConstants;
-import com.paddi.entity.dto.UserInfoUpdateDTO;
-import com.paddi.entity.dto.UserLoginDTO;
-import com.paddi.entity.dto.UserRegistryDTO;
-import com.paddi.entity.dto.UserUpdateDTO;
+import com.paddi.entity.dto.*;
 import com.paddi.entity.po.User;
+import com.paddi.entity.po.UserFollowing;
 import com.paddi.entity.po.UserInfo;
+import com.paddi.entity.vo.PageResult;
 import com.paddi.entity.vo.UserInfoVO;
 import com.paddi.entity.vo.UserVO;
 import com.paddi.exception.ConditionException;
+import com.paddi.mapper.UserFollowingMapper;
 import com.paddi.mapper.UserInfoMapper;
 import com.paddi.mapper.UserMapper;
 import com.paddi.service.UserService;
 import com.paddi.util.MD5Util;
+import com.paddi.util.PageUtils;
 import com.paddi.util.RSAUtil;
 import com.paddi.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +26,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @Author: Paddi-Yan
@@ -41,6 +46,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserInfoMapper userInfoMapper;
+
+    @Autowired
+    private UserFollowingMapper userFollowingMapper;
 
     @Override
     public void registryUser(UserRegistryDTO userRegistryDTO) {
@@ -146,4 +154,42 @@ public class UserServiceImpl implements UserService {
     public List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds) {
         return userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().in(UserInfo :: getUserId, userFollowingIds));
     }
+
+    @Override
+    public PageResult<UserInfoVO> getUserInfoPageResult(UserInfoPageQueryDTO pageQueryDTO, Long userId) {
+        PageParam pageParam = pageQueryDTO.getPageParam();
+        Integer pageNum = pageParam.getPageNum();
+        Integer pageSize = pageParam.getPageSize();
+        PageUtils.pageCheck(pageNum, pageSize);
+        PageHelper.startPage(pageNum, pageSize);
+        List<UserInfo> userInfoList = userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().like(UserInfo :: getNick, pageQueryDTO.getNickname() + "%"));
+        PageInfo<UserInfo> pageInfo = new PageInfo<>(userInfoList);
+        return new PageResult<>(pageInfo.getTotal(), pageInfo.getPages(), buildAndFillFollowingStatus(userInfoList, userId));
+    }
+
+    /**
+     * 构建以及填充关注状态
+     * 如果查询到的用户是已关注的需要标识
+     * @param userInfoList
+     * @param userId
+     * @return
+     */
+    private List<UserInfoVO> buildAndFillFollowingStatus(List<UserInfo> userInfoList, Long userId) {
+        //获取已关注的用户列表
+        List<UserFollowing> userFollowings = userFollowingMapper.selectList(new LambdaQueryWrapper<UserFollowing>().eq(UserFollowing :: getUserId, userId));
+        Set<Long> followedUserIds = userFollowings.parallelStream()
+                                          .map(UserFollowing :: getFollowingId)
+                                          .collect(Collectors.toSet());
+        List<UserInfoVO> userInfoVOList = new ArrayList<>(userFollowings.size());
+        for(UserInfo userInfo : userInfoList) {
+            UserInfoVO userInfoVO = new UserInfoVO(userInfo);
+            if(followedUserIds.contains(userInfo.getUserId())) {
+                userInfoVO.setFollowed(true);
+            }
+            userInfoVOList.add(userInfoVO);
+        }
+        return userInfoVOList;
+    }
+
+
 }

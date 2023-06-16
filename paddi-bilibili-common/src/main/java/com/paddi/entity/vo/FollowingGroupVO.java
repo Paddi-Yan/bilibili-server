@@ -20,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 public class FollowingGroupVO {
 
-    private Long userid;
+    private Long userId;
 
     private String name;
 
