@@ -12,9 +12,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum FollowingGroupEnum {
 
+    ALL("全部关注", "-1"),
     ESPECIAL_FOLLOWING("特别关注", "0"),
     stealthily_FOLLOWING("悄悄关注", "1"),
-    DEFAULT("特别关注", "2"),
+    DEFAULT("默认分组", "2"),
 
     ;
 

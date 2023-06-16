@@ -1,5 +1,6 @@
 package com.paddi.entity.po;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.paddi.entity.dto.UserFollowingDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,6 +27,9 @@ public class UserFollowing {
     private Long groupId;
 
     private LocalDateTime createTime;
+
+    @TableField(exist = false)
+    private UserInfo userInfo;
 
     public UserFollowing(UserFollowingDTO userFollowingDTO) {
         if(userFollowingDTO != null) {

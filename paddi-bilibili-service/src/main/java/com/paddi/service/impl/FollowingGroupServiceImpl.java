@@ -7,6 +7,8 @@ import com.paddi.service.FollowingGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @Author: Paddi-Yan
  * @Project: paddi-bilibili-server
@@ -26,6 +28,11 @@ public class FollowingGroupServiceImpl implements FollowingGroupService {
     @Override
     public FollowingGroup getById(Long id) {
         return followingGroupMapper.selectById(id);
+    }
+
+    @Override
+    public List<FollowingGroup> getByUserId(Long userId) {
+        return followingGroupMapper.selectList(new LambdaQueryWrapper<FollowingGroup>().eq(FollowingGroup::getUserid, userId));
     }
 
 }

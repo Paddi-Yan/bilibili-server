@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: Paddi-Yan
@@ -138,5 +140,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long userId) {
         return userMapper.selectById(userId);
+    }
+
+    @Override
+    public List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds) {
+        return userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().in(UserInfo :: getUserId, userFollowingIds));
     }
 }

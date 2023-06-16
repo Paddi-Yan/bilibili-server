@@ -5,7 +5,11 @@ import com.paddi.entity.dto.UserLoginDTO;
 import com.paddi.entity.dto.UserRegistryDTO;
 import com.paddi.entity.dto.UserUpdateDTO;
 import com.paddi.entity.po.User;
+import com.paddi.entity.po.UserInfo;
 import com.paddi.entity.vo.UserVO;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: Paddi-Yan
@@ -24,4 +28,6 @@ public interface UserService {
     void updateUserInfo(Long userId, UserInfoUpdateDTO userInfoUpdateDTO);
 
     User getUserById(Long userId);
+
+    List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds);
 }
