@@ -5,6 +5,7 @@ import com.paddi.entity.po.User;
 import com.paddi.entity.po.UserInfo;
 import com.paddi.entity.vo.PageResult;
 import com.paddi.entity.vo.UserInfoVO;
+import com.paddi.entity.vo.UserLoginVo;
 import com.paddi.entity.vo.UserVO;
 
 import java.util.List;
@@ -31,4 +32,11 @@ public interface UserService {
     List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds);
 
     PageResult<UserInfoVO> getUserInfoPageResult(UserInfoPageQueryDTO pageQueryDTO, Long userId);
+
+
+    UserLoginVo loginForDoubleTokens(UserLoginDTO userLoginDTO) throws Exception;
+
+    void logout(Long userId, String refreshToken, String accessToken);
+
+    UserLoginVo refreshToken(String refreshToken) throws Exception;
 }

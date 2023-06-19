@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.RefreshTokenMapper">
+
+    <select id="getRefreshTokenDetail" resultType="com.paddi.entity.po.RefreshToken">
+        select *
+        from t_refresh_token
+        where refresh_token = #{refreshToken}
+    </select>
+</mapper>

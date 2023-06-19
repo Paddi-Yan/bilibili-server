@@ -3,6 +3,10 @@
         PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.paddi.mapper.UserMapper">
+    <insert id="insertRefreshToken">
+        insert into t_refresh_token(user_id, refresh_token, create_time)
+        values (#{userId}, #{refreshToken}, #{date})
+    </insert>
 
     <update id="updateUser" parameterType="com.paddi.entity.po.User">
         update t_user
@@ -20,4 +24,11 @@
         where
             id = #{id}
     </update>
+
+    <delete id="deleteRefreshToken">
+        delete
+        from t_refresh_token
+        where user_id = #{userId}
+        or refresh_token = #{refreshToken}
+    </delete>
 </mapper>

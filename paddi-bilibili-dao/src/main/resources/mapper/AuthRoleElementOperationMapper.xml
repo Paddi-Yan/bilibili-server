@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.AuthRoleElementOperationMapper">
+    
+    <resultMap id="AuthElementOperationResultMap" type="com.paddi.entity.auth.AuthRoleElementOperation">
+        <id column="id" property="id"/>
+        <id column="role_id" property="roleId"/>
+        <id column="element_operation_id" property="elementOperationId"/>
+        <id column="create_time" property="createTime"/>
+        <association property="authElementOperation" javaType="com.paddi.entity.auth.AuthElementOperation">
+            <id column="element_name" property="elementName"/>
+            <id column="element_code" property="elementCode"/>
+            <id column="operation_type" property="operationType"/>
+            <id column="create_time" property="createTime"/>
+        </association>
+    </resultMap>
+    
+    <select id="getRoleElementOperationsByRoleIds" resultType="com.paddi.entity.auth.AuthRoleElementOperation" resultMap="AuthElementOperationResultMap">
+        select
+            areo.*,
+            aeo.element_name,
+            aeo.element_code,
+            aeo.operation_type
+        from
+            t_auth_role_element_operation as areo
+            left join t_auth_element_operation as aeo
+            on areo.element_operation_id = aeo.id
+        where
+            areo.role_id
+        in 
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                #{roleId}
+            </foreach>
+    </select>
+</mapper>

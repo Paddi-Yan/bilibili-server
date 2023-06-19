@@ -4,18 +4,25 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.paddi.constants.HttpStatus;
+import com.paddi.constants.RedisKey;
 import com.paddi.constants.UserConstants;
 import com.paddi.entity.dto.*;
+import com.paddi.entity.po.RefreshToken;
 import com.paddi.entity.po.User;
 import com.paddi.entity.po.UserFollowing;
 import com.paddi.entity.po.UserInfo;
 import com.paddi.entity.vo.PageResult;
 import com.paddi.entity.vo.UserInfoVO;
+import com.paddi.entity.vo.UserLoginVo;
 import com.paddi.entity.vo.UserVO;
 import com.paddi.exception.ConditionException;
+import com.paddi.mapper.RefreshTokenMapper;
 import com.paddi.mapper.UserFollowingMapper;
 import com.paddi.mapper.UserInfoMapper;
 import com.paddi.mapper.UserMapper;
+import com.paddi.redis.RedisCache;
+import com.paddi.service.UserAuthoritiesService;
 import com.paddi.service.UserService;
 import com.paddi.util.MD5Util;
 import com.paddi.util.PageUtils;
@@ -23,6 +30,7 @@ import com.paddi.util.RSAUtil;
 import com.paddi.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -50,6 +58,17 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserFollowingMapper userFollowingMapper;
 
+    @Autowired
+    private UserAuthoritiesService userAuthoritiesService;
+
+    @Autowired
+    private RefreshTokenMapper refreshTokenMapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Autowired
+    private RedisCache redisCache;
     @Override
     public void registryUser(UserRegistryDTO userRegistryDTO) {
         User userFromDB = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User :: getPhone, userRegistryDTO.getPhone()));
@@ -84,6 +103,9 @@ public class UserServiceImpl implements UserService {
                                  .gender(UserConstants.GENDER_UNKNOWN)
                                  .createTime(createTime)
                                  .build();
+
+        //为用户添加默认的权限和角色
+        userAuthoritiesService.addUserDefaultRole(user.getId());
         userInfoMapper.insert(userInfo);
 
     }
@@ -165,6 +187,58 @@ public class UserServiceImpl implements UserService {
         List<UserInfo> userInfoList = userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().like(UserInfo :: getNick, pageQueryDTO.getNickname() + "%"));
         PageInfo<UserInfo> pageInfo = new PageInfo<>(userInfoList);
         return new PageResult<>(pageInfo.getTotal(), pageInfo.getPages(), buildAndFillFollowingStatus(userInfoList, userId));
+    }
+
+    @Override
+    public UserLoginVo loginForDoubleTokens(UserLoginDTO userLoginDTO) throws Exception {
+        User userFromDB = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, userLoginDTO.getPhone()));
+        if(userFromDB == null) {
+            throw new ConditionException("当前用户不存在!");
+        }
+        String password = userLoginDTO.getPassword();
+        String rawPassword;
+        try {
+            rawPassword = RSAUtil.decrypt(password);
+        } catch(Exception e) {
+            throw new ConditionException("密码解密失败!");
+        }
+        String salt = userFromDB.getSalt();
+        String md5Password = MD5Util.sign(rawPassword, salt, "UTF-8");
+        if(!md5Password.equals(userFromDB.getPassword())) {
+            throw new ConditionException("密码错误!");
+        }
+        Long userId = userFromDB.getId();
+        String accessToken = TokenUtil.generateToken(userId);
+        String refreshToken = TokenUtil.generateRefreshToken(userId);
+        //保存refreshToken到数据库
+        userMapper.deleteRefreshToken(refreshToken, userId);
+        userMapper.insertRefreshToken(refreshToken, userId, LocalDateTime.now());
+        UserLoginVo userLoginVo = new UserLoginVo(accessToken, refreshToken);
+        return userLoginVo;
+    }
+
+    @Override
+    public void logout(Long userId, String refreshToken, String accessToken) {
+        userMapper.deleteRefreshToken(refreshToken, userId);
+        //将accessToken加入黑名单
+        try {
+            Date expireTime = TokenUtil.getExpireTime(accessToken);
+            if(expireTime.after(new Date())) {
+                redisTemplate.opsForHash().put(RedisKey.ACCESS_TOKEN_BLACKLIST, accessToken, expireTime);
+            }
+        } catch(Exception e) {
+            //不作处理直接返回即可
+        }
+    }
+
+    @Override
+    public UserLoginVo refreshToken(String refreshToken) throws Exception {
+        RefreshToken refreshTokenDetail = refreshTokenMapper.getRefreshTokenDetail(refreshToken);
+        if(refreshTokenDetail == null || TokenUtil.verifyToken(refreshToken) == null) {
+            throw new ConditionException(HttpStatus.FORBIDDEN, "refreshToken不存在过期,刷新失败!");
+        }
+        Long userId = refreshTokenDetail.getUserId();
+        return new UserLoginVo(TokenUtil.generateToken(userId), refreshToken);
     }
 
     /**

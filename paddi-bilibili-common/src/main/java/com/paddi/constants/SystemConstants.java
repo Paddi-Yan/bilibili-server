@@ -7,5 +7,8 @@ package com.paddi.constants;
  */
 public class SystemConstants {
 
-    public static final String TOKEN_REQUEST_HEAD = "token";
+    public static final String TOKEN_REQUEST_HEAD = "accessToken";
+    public static final String REFRESH_TOKEN_REQUEST_HEAD = "refreshToken";
+
+
 }

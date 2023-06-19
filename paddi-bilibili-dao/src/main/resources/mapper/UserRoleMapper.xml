@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.UserRoleMapper">
+    <insert id="insert" parameterType="com.paddi.entity.auth.UserRole">
+        insert into t_user_role(user_id, role_id, create_time)
+        values (#{userId}, #{roleId}, #{createTime})
+    </insert>
+
+    <select id="getUserRoleByUserId" resultType="com.paddi.entity.auth.UserRole">
+        select
+            ur.*,
+            ar.name as roleName,
+            ar.code as roleCode
+        from
+            t_user_role as ur
+        left join
+            t_auth_role as ar
+        on
+            ur.role_id = ar.id
+        where
+            user_id = #{userId}
+    </select>
+</mapper>

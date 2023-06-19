@@ -190,6 +190,7 @@ public class UserFollowingServiceImpl implements UserFollowingService {
             if(userFollowingsIdSet.contains(fanUserId)) {
                 userInfoVO.setFollowed(true);
             }
+            result.add(fansFollowingVO);
         }
         return result;
     }
