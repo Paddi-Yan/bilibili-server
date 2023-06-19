@@ -232,4 +232,9 @@ public class RedisCache
     public Boolean hasKey(final String key) {
         return redisTemplate.hasKey(key);
     }
+
+
+    public void increment(final String key) {
+        redisTemplate.opsForValue().increment(key);
+    }
 }
