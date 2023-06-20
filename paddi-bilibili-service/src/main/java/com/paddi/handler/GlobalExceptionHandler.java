@@ -23,21 +23,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
     public Result<String> exceptionHandler(Exception e) {
-        log.error(e.getMessage(), e);
+        log.error(e.getMessage());
         return Result.error(e.getMessage());
     }
 
     @ExceptionHandler(value = ConditionException.class)
     @ResponseBody
     public Result<String> conditionExceptionHandler(ConditionException e) {
-        log.error(e.getMessage(), e);
+        log.error(e.getMessage());
         return Result.error(e.getMessage(), e.getCode());
     }
 
     @ExceptionHandler(value = BadRequestException.class)
     @ResponseBody
     public Result<String> badRequestExceptionHandler(BadRequestException e) {
-        log.error(e.getMessage(), e);
+        log.error(e.getMessage());
         return Result.error(e.getMessage(), e.getCode());
     }
 }

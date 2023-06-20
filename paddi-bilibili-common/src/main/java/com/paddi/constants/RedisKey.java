@@ -18,4 +18,6 @@ public class RedisKey {
 
     public static final String UPLOADED_NUM_KEY = APPLICATION_PREFIX + "uploaded-num:";
 
+    public static final String VIDEO_LIKES = APPLICATION_PREFIX + "video-likes";
+
 }

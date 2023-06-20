@@ -235,7 +235,7 @@ public class UserServiceImpl implements UserService {
     public UserLoginVo refreshToken(String refreshToken) throws Exception {
         RefreshToken refreshTokenDetail = refreshTokenMapper.getRefreshTokenDetail(refreshToken);
         if(refreshTokenDetail == null || TokenUtil.verifyToken(refreshToken) == null) {
-            throw new ConditionException(HttpStatus.FORBIDDEN, "refreshToken不存在过期,刷新失败!");
+            throw new ConditionException(HttpStatus.FORBIDDEN, "refreshToken不存在或过期,刷新失败!");
         }
         Long userId = refreshTokenDetail.getUserId();
         return new UserLoginVo(TokenUtil.generateToken(userId), refreshToken);

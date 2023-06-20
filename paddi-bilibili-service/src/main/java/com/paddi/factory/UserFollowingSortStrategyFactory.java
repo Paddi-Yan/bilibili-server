@@ -2,11 +2,7 @@ package com.paddi.factory;
 
 import com.paddi.enums.SortType;
 import com.paddi.exception.ConditionException;
-import com.paddi.strategy.UserFollowingsDefaultSortStrategy;
-import com.paddi.strategy.following.UserFollowingsSortByNameStrategy;
-import com.paddi.strategy.following.UserFollowingsSortByTimeAscStrategy;
-import com.paddi.strategy.following.UserFollowingsSortByTimeDescStrategy;
-import com.paddi.strategy.following.UserFollowingsSortStrategy;
+import com.paddi.strategy.following.*;
 
 /**
  * @Author: Paddi-Yan

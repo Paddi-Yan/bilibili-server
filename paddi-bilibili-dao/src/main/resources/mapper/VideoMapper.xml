@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.VideoMapper">
+    <insert id="insertVideoTagsBatch">
+        insert into t_video_tag(video_id, tag_id, create_time)
+        values
+        <foreach collection="videoTags" item="videoTag" separator=",">
+            (
+                #{videoTag.videoId},
+                #{videoTag.tagId},
+                #{videoTag.createTime}
+            )
+        </foreach>
+    </insert>
+
+    <select id="getVideoTags" resultType="com.paddi.entity.po.Tag">
+        select t.*
+        from t_video_tag as vt
+        inner join t_tag as t
+        on vt.tag_id = t.id
+        where video_id = #{videoId}
+    </select>
+
+    <select id="getVideoLikeByVideoIdAndUserId" resultType="com.paddi.entity.po.VideoLike">
+        select *
+        from t_video_like
+        where video_id = #{videoId}
+        and user_id = #{userId}
+    </select>
+</mapper>

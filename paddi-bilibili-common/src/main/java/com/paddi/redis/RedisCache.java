@@ -146,6 +146,10 @@ public class RedisCache
         return setOperation;
     }
 
+    public <T> void addItemToCacheSet(final String key, T item) {
+        redisTemplate.opsForSet().add(key, item);
+    }
+
     /**
      * 获得缓存的set
      *
