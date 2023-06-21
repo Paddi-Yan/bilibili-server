@@ -14,6 +14,12 @@
             )
         </foreach>
     </insert>
+    <delete id="deleteVideoCollection">
+        delete from t_video_collection
+        where video_id = #{videoId}
+          and user_id = #{userId}
+          and group_id = #{groupId}
+    </delete>
 
     <select id="getVideoTags" resultType="com.paddi.entity.po.Tag">
         select t.*
@@ -28,5 +34,27 @@
         from t_video_like
         where video_id = #{videoId}
         and user_id = #{userId}
+    </select>
+
+    <select id="getVideoLikeCount" resultType="java.lang.Integer">
+        select count(*) as count
+        from t_video_like
+        where video_id = #{videoId}
+    </select>
+
+    <select id="getVideoCollection" resultType="com.paddi.entity.po.VideoCollection">
+        select *
+        from t_video_collection
+        where video_id = #{videoId}
+        and user_id = #{userId}
+        <if test="groupId != null and groupId !=''">
+            and group_id = #{groupId}
+        </if>
+    </select>
+
+    <select id="getVideoCollectionCount" resultType="java.lang.Integer">
+        select count(*) as count
+        from t_video_collection
+        where video_id = #{videoId}
     </select>
 </mapper>

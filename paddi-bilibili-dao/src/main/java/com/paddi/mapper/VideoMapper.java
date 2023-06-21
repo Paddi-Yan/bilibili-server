@@ -1,10 +1,7 @@
 package com.paddi.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.paddi.entity.po.Tag;
-import com.paddi.entity.po.Video;
-import com.paddi.entity.po.VideoLike;
-import com.paddi.entity.po.VideoTag;
+import com.paddi.entity.po.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -22,4 +19,12 @@ public interface VideoMapper extends BaseMapper<Video> {
     List<Tag> getVideoTags(Long videoId);
 
     VideoLike getVideoLikeByVideoIdAndUserId(@Param("videoId") Long videoId, @Param("userId") Long userId);
+
+    Integer getVideoLikeCount(Long videoId);
+
+    VideoCollection getVideoCollection(@Param("userId") Long userId, @Param("videoId") Long videoId, @Param("groupId")Long groupId);
+
+    void deleteVideoCollection(@Param("userId") Long userId, @Param("videoId") Long videoId, @Param("groupId")Long groupId);
+
+    Integer getVideoCollectionCount(Long videoId);
 }

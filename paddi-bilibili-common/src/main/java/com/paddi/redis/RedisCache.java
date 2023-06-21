@@ -241,4 +241,8 @@ public class RedisCache
     public void increment(final String key) {
         redisTemplate.opsForValue().increment(key);
     }
+
+    public void decrement(final String key) {
+        redisTemplate.opsForValue().decrement(key);
+    }
 }

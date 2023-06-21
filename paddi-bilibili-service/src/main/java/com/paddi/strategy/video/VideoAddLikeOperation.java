@@ -7,7 +7,7 @@ import com.paddi.mapper.VideoMapper;
 import com.paddi.message.VideoOperationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * @Project: paddi-bilibili-server
  * @CreatedTime: 2023年06月21日 00:02:38
  */
-@Component
+@Service
 @Slf4j
 public class VideoAddLikeOperation implements VideoOperation{
 
@@ -28,6 +28,7 @@ public class VideoAddLikeOperation implements VideoOperation{
 
     @Override
     public void execute(VideoOperationMessage message) {
+        //TODO 分布式锁保证幂等性
         Boolean notExecute = videoMapper.getVideoLikeByVideoIdAndUserId(message.getVideoId(), message.getUserId()) == null;
         if(notExecute) {
             VideoLike videoLike = new VideoLike(message.getUserId(), message.getVideoId(), LocalDateTime.now());

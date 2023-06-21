@@ -3,6 +3,7 @@ package com.paddi.service;
 import com.paddi.entity.dto.PageParam;
 import com.paddi.entity.dto.VideoPostDTO;
 import com.paddi.entity.vo.PageResult;
+import com.paddi.entity.vo.VideoStatisticsDataVO;
 import com.paddi.entity.vo.VideoVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,4 +25,12 @@ public interface VideoService {
     void addVideoLike(Long userId, Long videoId);
 
     void cancelVideoLike(Long videoId, Long userId);
+
+    VideoStatisticsDataVO getVideoLikes(Long videoId, Long userId);
+
+    void addVideoCollection(Long userId, Long videoId, Long groupId);
+
+    void cancelVideoCollection(Long userId, Long videoId, Long groupId);
+
+    VideoStatisticsDataVO getVideoCollectionCount(Long videoId, Long userId);
 }

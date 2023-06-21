@@ -28,4 +28,7 @@ public class VideoOperationMessage {
     private Map<String, Object> attachments;
 
     public final static String CREATE_TIME = "createTime";
+
+    public final static String COLLECTION_GROUP_ID = "groupId";
+
 }
