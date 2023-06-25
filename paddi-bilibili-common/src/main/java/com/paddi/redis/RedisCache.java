@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisCache
 {
     @Autowired
-    public RedisTemplate redisTemplate;
+    private RedisTemplate redisTemplate;
 
     /**
      * 缓存基本的对象，Integer、String、实体类等
@@ -146,8 +146,8 @@ public class RedisCache
         return setOperation;
     }
 
-    public <T> void addItemToCacheSet(final String key, T item) {
-        redisTemplate.opsForSet().add(key, item);
+    public <T> boolean addValueToSet(final String key, T item) {
+        return redisTemplate.opsForSet().add(key, item) == 1;
     }
 
     /**
@@ -244,5 +244,25 @@ public class RedisCache
 
     public void decrement(final String key) {
         redisTemplate.opsForValue().decrement(key);
+    }
+
+    public void increment(final String key,  Long delta) {
+        redisTemplate.opsForValue().increment(key, delta);
+    }
+
+    public <T> Boolean isMember(final String key, T value) {
+        return redisTemplate.opsForSet().isMember(key, value);
+    }
+
+    public <T> void removeValueFromSet(final String key, T value) {
+        redisTemplate.opsForSet().remove(key, value);
+    }
+
+    public Long size(final String key) {
+        return redisTemplate.opsForSet().size(key);
+    }
+
+    public <T> void addValuesToSet(String key, Collection<T> values) {
+        redisTemplate.opsForSet().add(key, values);
     }
 }

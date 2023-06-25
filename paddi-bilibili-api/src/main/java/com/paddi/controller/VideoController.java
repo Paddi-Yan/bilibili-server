@@ -1,10 +1,9 @@
 package com.paddi.controller;
 
 import com.paddi.core.ret.Result;
-import com.paddi.entity.dto.VideoCollectionDTO;
-import com.paddi.entity.dto.VideoPageListDTO;
-import com.paddi.entity.dto.VideoPostDTO;
+import com.paddi.entity.dto.*;
 import com.paddi.entity.vo.PageResult;
+import com.paddi.entity.vo.VideoCommentVO;
 import com.paddi.entity.vo.VideoStatisticsDataVO;
 import com.paddi.entity.vo.VideoVO;
 import com.paddi.service.VideoService;
@@ -97,4 +96,40 @@ public class VideoController {
         VideoStatisticsDataVO videoCollectionCount = videoService.getVideoCollectionCount(videoId, userId);
         return Result.success(videoCollectionCount);
     }
+
+    @PostMapping("/video-coins")
+    public Result addVideoCoins(@RequestBody VideoCoinsDTO videoCoinsDTO) {
+        Long userId = userSupport.getCurrentUserId();
+        videoService.addVideoCoins(userId, videoCoinsDTO.getVideoId(), videoCoinsDTO.getAmount());
+        return Result.success();
+    }
+
+    @GetMapping("/video-coins")
+    public Result getVideoCoins(@RequestParam Long videoId) {
+        Long userId = null;
+        try{
+            userId = userSupport.getCurrentUserId();
+        }catch (Exception ignored){}
+        VideoStatisticsDataVO videoCoins = videoService.getVideoCoins(videoId, userId);
+        return Result.success(videoCoins);
+    }
+
+    @PostMapping("/video-comments")
+    public Result addVideoComments(@RequestBody VideoCommentAddDTO videoCommentAddDTO) {
+        Long userId = userSupport.getCurrentUserId();
+        videoService.addVideoComment(userId, videoCommentAddDTO);
+        return Result.success();
+    }
+
+    @GetMapping("/video-comments")
+    public Result pageListVideoComments(@RequestBody VideoCommentPageListDTO videoCommentPageListDTO) {
+        Long userId = null;
+        try {
+            userId = userSupport.getCurrentUserId();
+        } catch(Exception ignored) { }
+        PageResult<VideoCommentVO> pageResult = videoService.pageListVideoComments(userId, videoCommentPageListDTO);
+        return Result.success(pageResult);
+    }
+
+
 }

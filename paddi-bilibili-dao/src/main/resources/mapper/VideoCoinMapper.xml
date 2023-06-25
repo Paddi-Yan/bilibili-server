@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paddi.mapper.VideoCoinMapper">
+
+    <select id="getVideoCoinByVideoIdAndUserId" resultType="com.paddi.entity.po.VideoCoin">
+        select *
+        from t_video_coin
+        where video_id = #{videoId}
+        and user_id = #{userId}
+    </select>
+    <select id="getVideoCoins" resultType="java.lang.Integer">
+        select
+            sum(amount)
+        from
+            t_video_coin
+        where
+            video_id = #{videoId}
+    </select>
+</mapper>

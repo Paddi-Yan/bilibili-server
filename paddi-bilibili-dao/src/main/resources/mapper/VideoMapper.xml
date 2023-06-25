@@ -47,13 +47,36 @@
         from t_video_collection
         where video_id = #{videoId}
         and user_id = #{userId}
-        <if test="groupId != null and groupId !=''">
-            and group_id = #{groupId}
-        </if>
+        and group_id = #{groupId}
     </select>
 
     <select id="getVideoCollectionCount" resultType="java.lang.Integer">
         select count(*) as count
+        from t_video_collection
+        where video_id = #{videoId}
+    </select>
+
+    <select id="getVideoCoinsByVideoIdAndUserId" resultType="com.paddi.entity.po.VideoCoin">
+        select *
+        from t_video_coin
+        where video_id = #{videoId}
+        and user_id = #{userId}
+    </select>
+    <select id="getVideoLikedUserIdList" resultType="java.lang.Long">
+        select distinct user_id
+        from t_video_like
+        where video_id = #{videoId}
+    </select>
+
+    <select id="getUserVideoCollections" resultType="com.paddi.entity.po.VideoCollection">
+        select *
+        from t_video_collection
+        where video_id = #{videoId}
+          and user_id = #{userId}
+    </select>
+
+    <select id="getVideoCollectedUserIdList" resultType="java.lang.Long">
+        select distinct user_id
         from t_video_collection
         where video_id = #{videoId}
     </select>

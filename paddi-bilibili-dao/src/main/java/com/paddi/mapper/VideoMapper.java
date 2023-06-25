@@ -27,4 +27,14 @@ public interface VideoMapper extends BaseMapper<Video> {
     void deleteVideoCollection(@Param("userId") Long userId, @Param("videoId") Long videoId, @Param("groupId")Long groupId);
 
     Integer getVideoCollectionCount(Long videoId);
+
+    VideoCoin getVideoCoinsByVideoIdAndUserId(Long videoId, Long userId);
+
+    List<Long> getVideoLikedUserIdList(Long videoId);
+
+    List<VideoCollection> getUserVideoCollections(Long userId, Long videoId);
+
+    List<Long> getVideoCollectedUserIdList(Long videoId);
+
+    List<RootVideoComment> getVideoCommentsGroupByRootIds(List<Long> parentIdList);
 }

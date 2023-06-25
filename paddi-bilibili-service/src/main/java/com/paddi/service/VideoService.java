@@ -1,8 +1,11 @@
 package com.paddi.service;
 
 import com.paddi.entity.dto.PageParam;
+import com.paddi.entity.dto.VideoCommentAddDTO;
+import com.paddi.entity.dto.VideoCommentPageListDTO;
 import com.paddi.entity.dto.VideoPostDTO;
 import com.paddi.entity.vo.PageResult;
+import com.paddi.entity.vo.VideoCommentVO;
 import com.paddi.entity.vo.VideoStatisticsDataVO;
 import com.paddi.entity.vo.VideoVO;
 
@@ -33,4 +36,12 @@ public interface VideoService {
     void cancelVideoCollection(Long userId, Long videoId, Long groupId);
 
     VideoStatisticsDataVO getVideoCollectionCount(Long videoId, Long userId);
+
+    void addVideoCoins(Long userId, Long videoId, Integer amount);
+
+    VideoStatisticsDataVO getVideoCoins(Long videoId, Long userId);
+
+    void addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO);
+
+    PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO);
 }

@@ -21,7 +21,6 @@ import com.paddi.mapper.RefreshTokenMapper;
 import com.paddi.mapper.UserFollowingMapper;
 import com.paddi.mapper.UserInfoMapper;
 import com.paddi.mapper.UserMapper;
-import com.paddi.redis.RedisCache;
 import com.paddi.service.UserAuthoritiesService;
 import com.paddi.service.UserService;
 import com.paddi.util.MD5Util;
@@ -67,8 +66,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RedisTemplate redisTemplate;
 
-    @Autowired
-    private RedisCache redisCache;
     @Override
     public void registryUser(UserRegistryDTO userRegistryDTO) {
         User userFromDB = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User :: getPhone, userRegistryDTO.getPhone()));

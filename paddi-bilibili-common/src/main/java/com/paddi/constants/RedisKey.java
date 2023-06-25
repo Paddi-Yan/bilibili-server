@@ -21,4 +21,5 @@ public class RedisKey {
     public static final String VIDEO_LIKES = APPLICATION_PREFIX + "video-likes:";
 
     public static final String VIDEO_COLLECTIONS = APPLICATION_PREFIX + "video-collections";
+    public static final String VIDEO_COINS = "video-coins";
 }

@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 public class VideoStatisticsDataVO {
 
-    private Integer count;
+    private Long count;
 
     private Boolean flag;
 }
