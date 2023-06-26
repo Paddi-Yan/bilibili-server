@@ -29,6 +29,8 @@ public class UserInfoVO {
 
     private Boolean followed;
 
+    private Integer postVideoCount;
+
     public UserInfoVO(UserInfo userInfo) {
         if(userInfo != null) {
             BeanUtils.copyProperties(userInfo, this);

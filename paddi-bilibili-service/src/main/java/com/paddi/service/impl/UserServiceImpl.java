@@ -1,26 +1,22 @@
 package com.paddi.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.paddi.constants.HttpStatus;
 import com.paddi.constants.RedisKey;
 import com.paddi.constants.UserConstants;
 import com.paddi.entity.dto.*;
-import com.paddi.entity.po.RefreshToken;
-import com.paddi.entity.po.User;
-import com.paddi.entity.po.UserFollowing;
-import com.paddi.entity.po.UserInfo;
+import com.paddi.entity.po.*;
 import com.paddi.entity.vo.PageResult;
 import com.paddi.entity.vo.UserInfoVO;
 import com.paddi.entity.vo.UserLoginVo;
 import com.paddi.entity.vo.UserVO;
 import com.paddi.exception.ConditionException;
-import com.paddi.mapper.RefreshTokenMapper;
-import com.paddi.mapper.UserFollowingMapper;
-import com.paddi.mapper.UserInfoMapper;
-import com.paddi.mapper.UserMapper;
+import com.paddi.mapper.*;
 import com.paddi.service.UserAuthoritiesService;
 import com.paddi.service.UserService;
 import com.paddi.util.MD5Util;
@@ -37,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +62,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private VideoMapper videoMapper;
 
     @Override
     public void registryUser(UserRegistryDTO userRegistryDTO) {
@@ -170,8 +170,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds) {
-        return userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().in(UserInfo :: getUserId, userFollowingIds));
+    public List<UserInfo> getUserByUserIds(Set<Long> userIds) {
+        return userInfoMapper.selectList(new LambdaQueryWrapper<UserInfo>().in(UserInfo :: getUserId, userIds));
     }
 
     @Override
@@ -238,6 +238,38 @@ public class UserServiceImpl implements UserService {
         return new UserLoginVo(TokenUtil.generateToken(userId), refreshToken);
     }
 
+    @Override
+    public UserInfoVO getUserInfo(Long userId, Long queryUserId) {
+        UserInfo userInfo = userInfoMapper.selectOne(Wrappers.lambdaQuery(UserInfo.class).eq(UserInfo::getUserId, queryUserId));
+        UserInfoVO userInfoVO = new UserInfoVO(userInfo);
+        CompletableFuture<Void> followingStatusFuture = CompletableFuture.runAsync(() -> fillFollowingStatus(userInfoVO, userId));
+        CompletableFuture<Void> postVideoCountFuture = CompletableFuture.runAsync(() -> fillPostVideoCount(userInfoVO));
+        CompletableFuture.allOf(followingStatusFuture, postVideoCountFuture).join();
+        return userInfoVO;
+    }
+
+    private void fillPostVideoCount(UserInfoVO userInfoVO) {
+        Integer postVideoCount = videoMapper.selectCount(Wrappers.lambdaQuery(Video.class)
+                                                        .eq(Video :: getUserId, userInfoVO.getUserId()));
+        userInfoVO.setPostVideoCount(postVideoCount);
+    }
+
+    private void fillFollowingStatus(UserInfoVO userInfoVO, Long userId) {
+        //暂时设定未关注
+        userInfoVO.setFollowed(false);
+        if(userId != null) {
+            //查询当前用户的关注列表
+            List<UserFollowing> userFollowings = userFollowingMapper.selectList(Wrappers.lambdaQuery(UserFollowing.class)
+                                                                                        .eq(UserFollowing :: getUserId, userId));
+            if(CollectionUtil.isNotEmpty(userFollowings)) {
+                Set<Long> userFollowingIds = userFollowings.stream()
+                                                           .map(UserFollowing :: getFollowingId)
+                                                           .collect(Collectors.toSet());
+                userInfoVO.setFollowed(userFollowingIds.contains(userInfoVO.getUserId()));
+            }
+        }
+    }
+
     /**
      * 构建以及填充关注状态
      * 如果查询到的用户是已关注的需要标识
@@ -245,7 +277,7 @@ public class UserServiceImpl implements UserService {
      * @param userId
      * @return
      */
-    private List<UserInfoVO> buildAndFillFollowingStatus(List<UserInfo> userInfoList, Long userId) {
+    public List<UserInfoVO> buildAndFillFollowingStatus(List<UserInfo> userInfoList, Long userId) {
         //获取已关注的用户列表
         List<UserFollowing> userFollowings = userFollowingMapper.selectList(new LambdaQueryWrapper<UserFollowing>().eq(UserFollowing :: getUserId, userId));
         Set<Long> followedUserIds = userFollowings.parallelStream()
@@ -261,6 +293,4 @@ public class UserServiceImpl implements UserService {
         }
         return userInfoVOList;
     }
-
-
 }

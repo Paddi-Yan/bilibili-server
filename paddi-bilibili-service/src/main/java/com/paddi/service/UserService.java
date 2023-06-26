@@ -29,7 +29,7 @@ public interface UserService {
 
     User getUserById(Long userId);
 
-    List<UserInfo> getUserByUserIds(Set<Long> userFollowingIds);
+    List<UserInfo> getUserByUserIds(Set<Long> userIds);
 
     PageResult<UserInfoVO> getUserInfoPageResult(UserInfoPageQueryDTO pageQueryDTO, Long userId);
 
@@ -39,4 +39,6 @@ public interface UserService {
     void logout(Long userId, String refreshToken, String accessToken);
 
     UserLoginVo refreshToken(String refreshToken) throws Exception;
+
+    UserInfoVO getUserInfo(Long userId, Long queryUserId);
 }

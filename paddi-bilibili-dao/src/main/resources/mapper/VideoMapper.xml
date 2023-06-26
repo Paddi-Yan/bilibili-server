@@ -3,6 +3,19 @@
         PUBLIC "-//mybatis.org//DTD MAPPER 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.paddi.mapper.VideoMapper">
+    <resultMap id="rootCommentResultMap" type="com.paddi.entity.po.RootVideoComment">
+        <id property="rootId" column="root_id"/>
+        <collection property="childrenComments">
+            <id property="id" column="id"/>
+            <id property="videoId" column="video_id"/>
+            <id property="userId" column="user_id"/>
+            <id property="comment" column="comment"/>
+            <id property="replyUserId" column="reply_user_id"/>
+            <id property="rootId" column="root_id"/>
+            <id property="createTime" column="create_time"/>
+            <id property="updateTime" column="update_time"/>
+        </collection>
+    </resultMap>
     <insert id="insertVideoTagsBatch">
         insert into t_video_tag(video_id, tag_id, create_time)
         values
@@ -79,5 +92,18 @@
         select distinct user_id
         from t_video_collection
         where video_id = #{videoId}
+    </select>
+    
+    <select id="getVideoCommentsGroupByRootIds" resultType="com.paddi.entity.po.RootVideoComment" resultMap="rootCommentResultMap">
+        select
+            *
+        from
+            t_video_comment
+        where
+            root_id in
+        <foreach collection="list" open="(" separator="," close=")" item="rootId">
+            #{rootId}
+        </foreach>
+        group by root_id
     </select>
 </mapper>

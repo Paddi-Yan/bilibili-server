@@ -1,16 +1,11 @@
 package com.paddi.service;
 
-import com.paddi.entity.dto.PageParam;
-import com.paddi.entity.dto.VideoCommentAddDTO;
-import com.paddi.entity.dto.VideoCommentPageListDTO;
-import com.paddi.entity.dto.VideoPostDTO;
-import com.paddi.entity.vo.PageResult;
-import com.paddi.entity.vo.VideoCommentVO;
-import com.paddi.entity.vo.VideoStatisticsDataVO;
-import com.paddi.entity.vo.VideoVO;
+import com.paddi.entity.dto.*;
+import com.paddi.entity.vo.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @Author: Paddi-Yan
@@ -22,6 +17,8 @@ public interface VideoService {
     void postVideo(VideoPostDTO videoPostDTO);
 
     PageResult<VideoVO> pageListVideos(PageParam pageParam, String area);
+
+    VideoVO getVideoInfo(Long videoId);
 
     void viewVideoOnlineBySlices(HttpServletRequest request, HttpServletResponse response, String url) throws Exception;
 
@@ -43,5 +40,14 @@ public interface VideoService {
 
     void addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO);
 
-    PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO);
+    PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO,
+                                                     Integer sortType);
+
+    void addVideoCommentLike(Long userId, VideoCommentLikeDTO videoCommentLikeDTO);
+
+    VideoStatisticsDataVO getVideoCommentLike(Long userId, Long commentId);
+
+    Long getVideoCommentLike(Long commentId);
+
+    VideoDetailsVO getVideoDetails(Long userId, Long videoId) throws ExecutionException, InterruptedException;
 }

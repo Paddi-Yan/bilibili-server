@@ -8,15 +8,10 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.google.common.collect.ImmutableMap;
 import com.paddi.constants.RedisKey;
-import com.paddi.entity.dto.PageParam;
-import com.paddi.entity.dto.VideoCommentAddDTO;
-import com.paddi.entity.dto.VideoCommentPageListDTO;
-import com.paddi.entity.dto.VideoPostDTO;
+import com.paddi.entity.dto.*;
 import com.paddi.entity.po.*;
-import com.paddi.entity.vo.PageResult;
-import com.paddi.entity.vo.VideoCommentVO;
-import com.paddi.entity.vo.VideoStatisticsDataVO;
-import com.paddi.entity.vo.VideoVO;
+import com.paddi.entity.vo.*;
+import com.paddi.enums.SortType;
 import com.paddi.enums.VideoOperationType;
 import com.paddi.enums.VideoType;
 import com.paddi.exception.BadRequestException;
@@ -27,10 +22,12 @@ import com.paddi.mapper.VideoMapper;
 import com.paddi.message.VideoOperationMessage;
 import com.paddi.redis.RedisCache;
 import com.paddi.service.UserCoinService;
+import com.paddi.service.UserService;
 import com.paddi.service.VideoService;
 import com.paddi.util.AssertUtils;
 import com.paddi.util.FastDFSUtils;
 import com.paddi.util.PageUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,10 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.paddi.constants.RocketMQConstants.VIDEO_TOPIC;
@@ -55,6 +52,7 @@ import static com.paddi.message.VideoOperationMessage.COLLECTION_GROUP_ID;
  * @CreatedTime: 2023年06月20日 00:47:43
  */
 @Service
+@Slf4j
 public class VideoServiceImpl implements VideoService {
 
     @Autowired
@@ -80,6 +78,9 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private VideoCommentMapper videoCommentMapper;
+
+    @Autowired
+    private UserService userService;
 
 
     @Override
@@ -113,14 +114,23 @@ public class VideoServiceImpl implements VideoService {
         PageInfo<Video> pageInfo = new PageInfo<>(videoList);
         List<VideoVO> videoVOList = new ArrayList<>();
         if(CollectionUtil.isNotEmpty(videoList)) {
-             videoVOList = videoList.parallelStream().map(video -> {
-                VideoVO videoVO = new VideoVO(video);
-                List<Tag> videoTags = videoMapper.getVideoTags(video.getId());
-                videoVO.setVideoTagList(videoTags);
-                return videoVO;
-            }).collect(Collectors.toList());
+             videoVOList = videoList.parallelStream().map(video -> buildVideoVO(video)).collect(Collectors.toList());
         }
         return new PageResult<>(pageInfo.getTotal(), pageInfo.getPages(), videoVOList);
+    }
+
+    private VideoVO buildVideoVO(Video video) {
+        VideoVO videoVO = new VideoVO(video);
+        List<Tag> videoTags = videoMapper.getVideoTags(video.getId());
+        videoVO.setVideoTagList(videoTags);
+        return videoVO;
+    }
+
+    @Override
+    public VideoVO getVideoInfo(Long videoId) {
+        checkVideo(videoId);
+        Video video = videoMapper.selectById(videoId);
+        return buildVideoVO(video);
     }
 
     @Override
@@ -170,7 +180,7 @@ public class VideoServiceImpl implements VideoService {
         VideoStatisticsDataVO videoStatisticsDataVO = new VideoStatisticsDataVO();
         videoStatisticsDataVO.setFlag(videoLiked);
         if(redisCache.hasKey(videoLikeKey)) {
-            count = redisCache.size(videoLikeKey);
+            count = redisCache.getSetSize(videoLikeKey);
             videoStatisticsDataVO.setCount(count);
             return videoStatisticsDataVO;
         }
@@ -236,7 +246,7 @@ public class VideoServiceImpl implements VideoService {
         VideoStatisticsDataVO videoStatisticsDataVO = new VideoStatisticsDataVO();
         videoStatisticsDataVO.setFlag(collected);
         if(redisCache.hasKey(videoCollectionKey)) {
-            count = redisCache.size(videoCollectionKey);
+            count = redisCache.getSetSize(videoCollectionKey);
             videoStatisticsDataVO.setCount(count);
             return videoStatisticsDataVO;
         }
@@ -326,26 +336,195 @@ public class VideoServiceImpl implements VideoService {
         videoCommentMapper.insert(videoComment);
     }
 
+    /**
+     * 分页查询视频评论
+     *
+     * @param userId 可为空 即游客模式
+     * @param videoCommentPageListDTO
+     * @param value
+     * @return
+     */
     @Override
-    public PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO) {
+    public PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO,
+                                                            Integer value) {
         Long videoId = videoCommentPageListDTO.getVideoId();
         PageParam pageParam = videoCommentPageListDTO.getPageParam();
         Integer pageNum = pageParam.getPageNum();
         Integer pageSize = pageParam.getPageSize();
         PageUtils.pageCheck(pageNum, pageSize);
         checkVideo(videoId);
-        PageHelper.startPage(pageNum, pageSize);
-        List<VideoComment> videoRootComments = videoCommentMapper.pageListVideoRootComments(videoId);
-        PageInfo<VideoComment> pageInfo = new PageInfo<>(videoRootComments);
-        Long total = pageInfo.getTotal();
-        Integer pages = pageInfo.getPageSize();
-        List<VideoCommentVO> list = new ArrayList<>();
-        if(CollectionUtil.isNotEmpty(videoRootComments)) {
-            List<Long> parentIdList = videoRootComments.stream().map(VideoComment :: getId).collect(Collectors.toList());
-            //TODO 使用SQL进行分组或者Stream进行分组
-            videoMapper.getVideoCommentsGroupByRootIds(parentIdList);
+
+        SortType sortType = SortType.getSortType(value);
+        AssertUtils.isNull(sortType, new BadRequestException("错误的排序类型!"));
+
+        List<VideoComment> videoRootComments = null;
+        Long total = null;
+        Integer pages = null;
+        if(SortType.DEFAULT.equals(sortType)) {
+            //按照热度分页查询一级评论
+            String commentsPopularityKey = RedisKey.VIDEO_ROOT_COMMENTS_POPULARITY + videoId;
+            int startIndex = (pageNum - 1) * pageSize;
+            int endIndex = startIndex + pageSize - 1;
+            //查询出较高热度的一级评论编号
+            Set<Long> rootCommentIdList = redisCache.getCacheZSetValues(commentsPopularityKey, startIndex, endIndex);
+            videoRootComments = videoCommentMapper.selectBatchIds(rootCommentIdList);
+            total = redisCache.getZSetSize(commentsPopularityKey);
+            pages = getPages(total, pageSize);
+        } else if(SortType.BY_TIME_DESC.equals(sortType)) {
+            //按照时间降序分页查询一级评论
+            PageHelper.startPage(pageNum, pageSize);
+            videoRootComments = videoCommentMapper.pageListVideoRootComments(videoId);
+            PageInfo<VideoComment> pageInfo = new PageInfo<>(videoRootComments);
+            total = pageInfo.getTotal();
+            pages = pageInfo.getPageSize();
         }
-        return new PageResult<>(total, pages, list);
+        List<VideoCommentVO> result = new ArrayList<>();
+        if(CollectionUtil.isNotEmpty(videoRootComments)) {
+            List<Long> rootCommentIdList = videoRootComments.stream()
+                                                            .map(VideoComment :: getId)
+                                                            .collect(Collectors.toList());
+            List<RootVideoComment> rootIdAndChildrenComments = videoMapper.getVideoCommentsGroupByRootIds(rootCommentIdList);
+            //构建一级评论编号和其二级评论的映射
+            Map<Long, List<VideoComment>> rootIdToChildrenComments = rootIdAndChildrenComments.stream()
+                                                                                              .collect(Collectors.toMap(RootVideoComment :: getRootId, RootVideoComment :: getChildrenComments));
+            //获取一级评论和二级评论所有的用户编号
+            Set<Long> userIdList = videoRootComments.stream()
+                                                    .map(VideoComment :: getUserId)
+                                                    .collect(Collectors.toSet());
+            for(List<VideoComment> videoComments : rootIdToChildrenComments.values()) {
+                for(VideoComment videoComment : videoComments) {
+                    userIdList.add(videoComment.getUserId());
+                    userIdList.add(videoComment.getReplyUserId());
+                }
+            }
+            //查询相关评论的用户信息
+            List<UserInfo> userInfoList = userService.getUserByUserIds(userIdList);
+            Map<Long, UserInfo> userIdToInfoMap = userInfoList.stream()
+                                                              .collect(Collectors.toMap(UserInfo :: getUserId, Function.identity()));
+            //遍历一级评论
+            for(VideoComment videoRootComment : videoRootComments) {
+                //构建一级评论
+                VideoCommentVO videoRootCommentVO = buildVideoCommentVO(userId, userIdToInfoMap, videoRootComment);
+
+                List<VideoCommentVO> childrenCommentList = new ArrayList<>();
+                //遍历该一级评论下的二级评论
+                for(VideoComment childrenComment : rootIdToChildrenComments.get(videoRootComment.getId())) {
+                    //构建二级评论
+                    VideoCommentVO videoChildrenCommentVO = buildVideoCommentVO(userId, userIdToInfoMap, childrenComment);
+                    childrenCommentList.add(videoChildrenCommentVO);
+                }
+                videoRootCommentVO.setChildList(childrenCommentList);
+                result.add(videoRootCommentVO);
+            }
+        }
+        return new PageResult<>(total, pages, result);
+    }
+
+    private Integer getPages(Long total, Integer pageSize) {
+        return Math.toIntExact((total + pageSize - 1) / pageSize);
+    }
+
+
+    private VideoCommentVO buildVideoCommentVO(Long userId, Map<Long, UserInfo> userIdToInfoMap,
+                                             VideoComment videoComment) {
+        VideoCommentVO videoRootCommentVO = new VideoCommentVO(videoComment);
+        VideoStatisticsDataVO videoStatisticsData = getVideoCommentLike(userId, videoComment.getId());
+        videoRootCommentVO.setLiked(videoStatisticsData.getFlag());
+        videoRootCommentVO.setLikeCount(videoStatisticsData.getCount());
+        videoRootCommentVO.setUserInfo(userIdToInfoMap.get(videoComment.getUserId()));
+        videoRootCommentVO.setReplyUserInfo(userIdToInfoMap.get(videoComment.getReplyUserId()));
+        return videoRootCommentVO;
+    }
+
+    @Override
+    public void addVideoCommentLike(Long userId, VideoCommentLikeDTO videoCommentLikeDTO) {
+        Long videoId = videoCommentLikeDTO.getVideoId();
+        checkVideo(videoId);
+        Long commentId = videoCommentLikeDTO.getCommentId();
+        String commentsLikesKey = RedisKey.VIDEO_COMMENTS_LIKE + commentId;
+        String commentsPopularityKey;
+        redisCache.addValueToSet(commentsLikesKey, userId);
+        VideoComment videoComment = videoCommentMapper.selectById(commentId);
+        AssertUtils.isNull(videoComment, new BadRequestException("评论不存在!"));
+        //区分一级评论/二级评论
+        if(videoComment.getRootId() == null) {
+            //一级评论
+            commentsPopularityKey = RedisKey.VIDEO_ROOT_COMMENTS_POPULARITY + videoId;
+        }else {
+            //二级评论
+            commentsPopularityKey = RedisKey.VIDEO_ROOT_COMMENTS_POPULARITY + videoComment.getRootId();
+        }
+        redisCache.addValueToZSet(commentsPopularityKey, commentId, 1);
+
+        //TODO 缓存重建
+        //TODO 使用消息队列进行点赞记录异步落库
+    }
+
+    /**
+     * 关于视频评论缓存
+     * 1.评论点赞用户的集合,其中存储了点赞的用户编号,可以快速判断用户是否点赞以及获取该评论的点赞数量
+     * 2.视频中所有评论的点赞排序集合,其中存储了一个视频中的每条评论以及每条评论对应的点赞数量,用户评论获取时按照热度进行从高到低排序
+     * @param userId
+     * @param commentId
+     * @return
+     */
+    @Override
+    public VideoStatisticsDataVO getVideoCommentLike(Long userId, Long commentId) {
+        String redisKey = RedisKey.VIDEO_COMMENTS_LIKE + commentId;
+        Boolean liked = userId != null && redisCache.isMember(redisKey, userId);
+        Long count = getVideoCommentLike(commentId);
+        return new VideoStatisticsDataVO(count, liked);
+    }
+
+    @Override
+    public Long getVideoCommentLike(Long commentId) {
+        String redisKey = RedisKey.VIDEO_COMMENTS_LIKE + commentId;
+        return redisCache.getSetSize(redisKey);
+    }
+
+    @Override
+    public VideoDetailsVO getVideoDetails(Long userId, Long videoId) {
+        CompletableFuture<VideoVO> videoFuture = CompletableFuture.supplyAsync(() -> getVideoInfo(videoId));
+        CompletableFuture<VideoStatisticsDataVO> videoLikesFuture = CompletableFuture.supplyAsync(() -> getVideoLikes(videoId, userId));
+        CompletableFuture<VideoStatisticsDataVO> videoCoinsFuture = CompletableFuture.supplyAsync(() -> getVideoCoins(videoId, userId));
+        CompletableFuture<VideoStatisticsDataVO> videoCollectionsFuture = CompletableFuture.supplyAsync(() -> getVideoCollectionCount(videoId, userId));
+        CompletableFuture<PageResult<VideoCommentVO>> videoCommentsFuture = CompletableFuture.supplyAsync(() -> {
+            VideoCommentPageListDTO param = new VideoCommentPageListDTO();
+            param.setVideoId(videoId);
+            param.setPageParam(new PageParam(1, 20));
+            return pageListVideoComments(userId, param, SortType.DEFAULT.getValue());
+        });
+        //TODO 根据热度查询视频评论信息
+        CompletableFuture<UserInfoVO> userInfoFuture = videoFuture.thenApply(videoVO -> userService.getUserInfo(userId, videoVO.getUserId()));
+        CompletableFuture<VideoDetailsVO> videoDetailsFuture = CompletableFuture.allOf(videoFuture, videoLikesFuture, videoCoinsFuture, videoCollectionsFuture, userInfoFuture, videoCommentsFuture)
+                                                                .thenApply(result -> {
+                VideoVO videoVO = videoFuture.join();
+                VideoStatisticsDataVO likes = videoLikesFuture.join();
+                VideoStatisticsDataVO coins = videoCoinsFuture.join();
+                VideoStatisticsDataVO collections = videoCollectionsFuture.join();
+                PageResult<VideoCommentVO> pageResult = videoCommentsFuture.join();
+                UserInfoVO userInfoVO = userInfoFuture.join();
+                return VideoDetailsVO.builder()
+                                     .videoVO(videoVO)
+                                     .likes(likes)
+                                     .coins(coins)
+                                     .collections(collections)
+                                     .videoComments(pageResult)
+                                     .userInfoVO(userInfoVO)
+                                     .build();
+        });
+        VideoDetailsVO videoDetailsVO = null;
+        try {
+            videoDetailsVO = videoDetailsFuture.get();
+        } catch(Exception e) {
+            Throwable cause = e.getCause();
+            if(cause instanceof BadRequestException) {
+                throw (BadRequestException) cause;
+            }else {
+                log.error("发生异常: {}", cause.getMessage());
+            }
+        }
+        return videoDetailsVO;
     }
 
     private void checkCollectionGroup(Long groupId) {

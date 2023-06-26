@@ -36,5 +36,5 @@ public interface VideoMapper extends BaseMapper<Video> {
 
     List<Long> getVideoCollectedUserIdList(Long videoId);
 
-    List<RootVideoComment> getVideoCommentsGroupByRootIds(List<Long> parentIdList);
+    List<RootVideoComment> getVideoCommentsGroupByRootIds(@Param("list") List<Long> parentIdList);
 }

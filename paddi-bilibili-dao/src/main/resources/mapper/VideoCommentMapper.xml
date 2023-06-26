@@ -9,5 +9,6 @@
         from t_video_comment
         where video_id = #{videoId}
         and root_id is null
+        order by create_time DESC
     </select>
 </mapper>

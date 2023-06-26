@@ -2,10 +2,7 @@ package com.paddi.controller;
 
 import com.paddi.core.ret.Result;
 import com.paddi.entity.dto.*;
-import com.paddi.entity.vo.PageResult;
-import com.paddi.entity.vo.VideoCommentVO;
-import com.paddi.entity.vo.VideoStatisticsDataVO;
-import com.paddi.entity.vo.VideoVO;
+import com.paddi.entity.vo.*;
 import com.paddi.service.VideoService;
 import com.paddi.support.UserSupport;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -122,13 +119,41 @@ public class VideoController {
     }
 
     @GetMapping("/video-comments")
-    public Result pageListVideoComments(@RequestBody VideoCommentPageListDTO videoCommentPageListDTO) {
+    public Result pageListVideoComments(@RequestBody VideoCommentPageListDTO videoCommentPageListDTO, @RequestParam Integer sortType) {
         Long userId = null;
         try {
             userId = userSupport.getCurrentUserId();
         } catch(Exception ignored) { }
-        PageResult<VideoCommentVO> pageResult = videoService.pageListVideoComments(userId, videoCommentPageListDTO);
+        PageResult<VideoCommentVO> pageResult = videoService.pageListVideoComments(userId, videoCommentPageListDTO, sortType);
         return Result.success(pageResult);
+    }
+
+    @PostMapping("/video-comment-likes")
+    public Result addVideoCommentLiked(@RequestBody VideoCommentLikeDTO videoCommentLikeDTO) {
+        Long userId = userSupport.getCurrentUserId();
+        videoService.addVideoCommentLike(userId, videoCommentLikeDTO);
+        return Result.success();
+    }
+
+    @GetMapping("/video-comment-likes")
+    public Result getVideoCommentLiked(@RequestParam Long commentId) {
+        Long userId = null;
+        try {
+            userId = userSupport.getCurrentUserId();
+        } catch(Exception ignored) { }
+        VideoStatisticsDataVO videoCommentLike = videoService.getVideoCommentLike(userId, commentId);
+        return Result.success(videoCommentLike);
+    }
+
+
+    @GetMapping("/video-details")
+    public Result getVideoDetails(@RequestParam Long videoId) throws Exception {
+        Long userId = null;
+        try {
+            userId = userSupport.getCurrentUserId();
+        } catch(Exception ignored) { }
+        VideoDetailsVO videoDetails = videoService.getVideoDetails(userId, videoId);
+        return Result.success(videoDetails);
     }
 
 

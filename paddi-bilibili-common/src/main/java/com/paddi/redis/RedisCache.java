@@ -1,10 +1,7 @@
 package com.paddi.redis;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.BoundSetOperations;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -258,11 +255,38 @@ public class RedisCache
         redisTemplate.opsForSet().remove(key, value);
     }
 
-    public Long size(final String key) {
+    public Long getSetSize(final String key) {
         return redisTemplate.opsForSet().size(key);
+    }
+
+    public Long getZSetSize(final String key) {
+        return redisTemplate.opsForZSet().size(key);
     }
 
     public <T> void addValuesToSet(String key, Collection<T> values) {
         redisTemplate.opsForSet().add(key, values);
+    }
+
+    public <V> void addValueToZSet(String key, V value, double score) {
+        redisTemplate.opsForZSet().add(key, value, score);
+    }
+
+    public <E> Set<E> getCacheZSetValues(String key) {
+        return redisTemplate.opsForZSet().reverseRange(key, 0, -1);
+    }
+
+    public <E> Set<E> getCacheZSetValuesGradually(String key) {
+        Set<E> result = new HashSet<>();
+        ScanOptions options = ScanOptions.scanOptions().match("*").count(100).build();
+        Cursor<ZSetOperations.TypedTuple<E>> cursor = redisTemplate.opsForZSet().scan(key, options);
+        while(cursor.hasNext()) {
+            ZSetOperations.TypedTuple<E> typedTuple = cursor.next();
+            result.add(typedTuple.getValue());
+        }
+        return result;
+    }
+
+    public <E> Set<E> getCacheZSetValues(String key, int startIndex, int endIndex) {
+        return redisTemplate.opsForZSet().reverseRange(key, startIndex, endIndex);
     }
 }

@@ -36,6 +36,15 @@ public class UserController {
         return Result.success(userService.getUserInfo(userId));
     }
 
+    @GetMapping("/other-users")
+    public Result getUserInfo(@RequestParam Long queryUserId) {
+        //TODO 查询其他人的用户信息
+        Long userId = userSupport.getCurrentUserId();
+        UserInfoVO userInfo = userService.getUserInfo(userId, queryUserId);
+        return Result.success(userInfo);
+    }
+
+
     @GetMapping("/rsa-public-keys")
     public Result<String> getRsaPublicKey() {
         return Result.success(RSAUtil.getPublicKeyStr());

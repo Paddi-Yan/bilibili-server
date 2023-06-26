@@ -5,6 +5,7 @@ import com.paddi.entity.po.Video;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -60,6 +61,8 @@ public class VideoVO {
      * 简介
      */
     private String description;
+
+    private LocalDateTime createTime;
 
     public VideoVO(Video video) {
         if(video != null) {

@@ -20,6 +20,11 @@ public class RedisKey {
 
     public static final String VIDEO_LIKES = APPLICATION_PREFIX + "video-likes:";
 
-    public static final String VIDEO_COLLECTIONS = APPLICATION_PREFIX + "video-collections";
-    public static final String VIDEO_COINS = "video-coins";
+    public static final String VIDEO_COLLECTIONS = APPLICATION_PREFIX + "video-collections:";
+    public static final String VIDEO_COINS = APPLICATION_PREFIX + "video-coins:";
+    public static final String VIDEO_COMMENTS_LIKE = APPLICATION_PREFIX + "video-comments-like:";
+
+    public static final String VIDEO_ROOT_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-root-comments-popularity";
+
+    public static final String VIDEO_CHILD_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-child-comments-popularity";
 }
