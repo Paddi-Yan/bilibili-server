@@ -291,7 +291,11 @@ public class RedisCache
         return redisTemplate.opsForZSet().reverseRange(key, startIndex, endIndex);
     }
 
-    public Integer execute(RedisScript script, List<String> keys, Object... args) {
-        return (Integer) redisTemplate.execute(script, keys, args);
+    public <T> T execute(RedisScript<T> script, List<String> keys, Object... args) {
+        return (T) redisTemplate.execute(script, keys, args);
+    }
+
+    public <F, V> void addValueToHash(String key, F field, V value) {
+        redisTemplate.opsForHash().put(key, field, value);
     }
 }

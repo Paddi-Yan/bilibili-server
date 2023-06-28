@@ -48,8 +48,8 @@ public class VideoAddCommentOperation implements VideoCommentOperation {
 
     private static final Integer THRESHOLD = 2;
 
-    private static final Integer CREATED = -1;
-    private static final Integer SUCCESS = 0;
+    private static final Long CREATED = -1L;
+    private static final Long SUCCESS = 0L;
 
     private static final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
 
@@ -63,11 +63,13 @@ public class VideoAddCommentOperation implements VideoCommentOperation {
 
         @Override
         public void run() {
-            DefaultRedisScript<Integer> redisScript = new DefaultRedisScript<>(FileUtil.readString(ResourceUtil.getResource(getCounterScriptPath), "UTF-8"), Integer.class);
+            DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(FileUtil.readString(ResourceUtil.getResource(getCounterScriptPath), "UTF-8"), Long.class);
             String counterKey = RedisKey.VIDEO_COMMENT_COUNTER + areaId;
-            Integer value = redisCache.execute(redisScript, Collections.singletonList(counterKey));
-            log.info("合并视频评论区[{}]评论数量[{}]", areaId, value);
-            videoCommentAreaMapper.increaseCommentCount(areaId, value);
+            Long value = redisCache.execute(redisScript, Collections.singletonList(counterKey));
+            if(value != null && value > 0) {
+                log.info("合并视频评论区[{}]评论数量[{}]", areaId, value);
+                videoCommentAreaMapper.increaseCommentCount(areaId, value.intValue());
+            }
         }
     }
 
@@ -101,10 +103,10 @@ public class VideoAddCommentOperation implements VideoCommentOperation {
             Integer count = rootComment.getChildCommentCount();
             videoCommentMapper.updateReplyCommentCount(rootId, count + 1, count);
         }
-        //TODO 计数类数据内存合并再进行落库
-        DefaultRedisScript<Integer> redisScript = new DefaultRedisScript<>(FileUtil.readString(ResourceUtil.getResource(scriptPath), "UTF-8"), Integer.class);
+        //计数类数据内存合并再进行落库
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(FileUtil.readString(ResourceUtil.getResource(scriptPath), "UTF-8"), Long.class);
         String counterKey = RedisKey.VIDEO_COMMENT_COUNTER + commentAreaId;
-        Integer result = redisCache.execute(redisScript, Collections.singletonList(counterKey), THRESHOLD);
+        Long result = redisCache.execute(redisScript, Collections.singletonList(counterKey), THRESHOLD);
         if(CREATED.equals(result)) {
             //创建定时任务
             executor.schedule(new MergeVideoCommentCounterTask(commentAreaId), 30, TimeUnit.SECONDS);
@@ -112,7 +114,7 @@ public class VideoAddCommentOperation implements VideoCommentOperation {
             //不需要执行操作
         } else if(result >= THRESHOLD) {
             //合并内存更新数据库
-            videoCommentAreaMapper.increaseCommentCount(commentAreaId, result);
+            videoCommentAreaMapper.increaseCommentCount(commentAreaId, result.intValue());
         }
         //TODO 缓存刷新
     }

@@ -17,6 +17,7 @@ import com.paddi.enums.VideoCommentOperationType;
 import com.paddi.enums.VideoOperationType;
 import com.paddi.enums.VideoType;
 import com.paddi.exception.BadRequestException;
+import com.paddi.exception.NotContentException;
 import com.paddi.mapper.*;
 import com.paddi.message.VideoCommentMessage;
 import com.paddi.message.VideoOperationMessage;
@@ -29,6 +30,8 @@ import com.paddi.util.FastDFSUtils;
 import com.paddi.util.PageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,8 +45,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.paddi.constants.RocketMQConstants.VIDEO_COMMENT_TOPIC;
-import static com.paddi.constants.RocketMQConstants.VIDEO_TOPIC;
+import static com.paddi.constants.RedisKey.LOCK_SUFFIX;
+import static com.paddi.constants.RedisKey.VIDEO_COMMENT_AREA;
+import static com.paddi.constants.RocketMQConstants.*;
 import static com.paddi.constants.SystemConstants.BATCH_SIZE;
 import static com.paddi.message.VideoCommentMessage.REPLY_USER_ID;
 import static com.paddi.message.VideoCommentMessage.ROOT_COMMENT_ID;
@@ -63,6 +67,9 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private FastDFSUtils fastDFSUtils;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Autowired
     private RedisCache redisCache;
@@ -158,7 +165,7 @@ public class VideoServiceImpl implements VideoService {
                                                            .videoId(videoId)
                                                            .type(VideoOperationType.ADD_LIKE)
                                                            .build();
-        rocketMQTemplate.convertAndSend(VIDEO_TOPIC, JSON.toJSONString(message));
+        rocketMQTemplate.convertAndSend(VIDEO_TOPIC + ":" + OPERATION, JSON.toJSONString(message));
     }
 
     @Override
@@ -174,7 +181,7 @@ public class VideoServiceImpl implements VideoService {
                                                            .videoId(videoId)
                                                            .type(VideoOperationType.CANCEL_LIKE)
                                                            .build();
-        rocketMQTemplate.convertAndSend(VIDEO_TOPIC, JSON.toJSONString(message));
+        rocketMQTemplate.convertAndSend(VIDEO_TOPIC + ":" + OPERATION, JSON.toJSONString(message));
     }
 
     @Override
@@ -214,7 +221,7 @@ public class VideoServiceImpl implements VideoService {
                                                            .type(VideoOperationType.ADD_COLLECTION)
                                                            .attachments(ImmutableMap.of(COLLECTION_GROUP_ID, groupId))
                                                            .build();
-        rocketMQTemplate.convertAndSend(VIDEO_TOPIC, JSON.toJSONString(message));
+        rocketMQTemplate.convertAndSend(VIDEO_TOPIC + ":" + OPERATION, JSON.toJSONString(message));
     }
 
     @Override
@@ -240,7 +247,7 @@ public class VideoServiceImpl implements VideoService {
                                                              .type(VideoOperationType.CANCEL_COLLECTION)
                                                              .attachments(ImmutableMap.of(COLLECTION_GROUP_ID, groupId))
                                                              .build();
-        rocketMQTemplate.convertAndSend(VIDEO_TOPIC, JSON.toJSONString(message));
+        rocketMQTemplate.convertAndSend(VIDEO_TOPIC + ":" + OPERATION, JSON.toJSONString(message));
     }
 
     @Override
@@ -558,6 +565,29 @@ public class VideoServiceImpl implements VideoService {
             }
         }
         return videoDetailsVO;
+    }
+
+    @Override
+    public VideoCommentArea getVideoCommentArea(Long videoId) {
+        Video video = checkVideo(videoId);
+        Long commentAreaId = video.getCommentAreaId();
+        String redisKey = VIDEO_COMMENT_AREA + commentAreaId;
+        VideoCommentArea videoCommentArea = redisCache.getCacheObject(redisKey);
+        if(videoCommentArea == null) {
+            String lockKey = VIDEO_COMMENT_AREA + LOCK_SUFFIX + commentAreaId;
+            RLock lock = redissonClient.getLock(lockKey);
+            if(!lock.tryLock()) {
+               throw new NotContentException();
+            }
+            try {
+                videoCommentArea = videoCommentAreaMapper.selectById(commentAreaId);
+                AssertUtils.isNull(videoCommentArea, new BadRequestException("评论区不存在!"));
+                redisCache.setCacheObject(redisKey, videoCommentArea);
+            }finally {
+                lock.unlock();
+            }
+        }
+        return videoCommentArea;
     }
 
     private void checkCollectionGroup(Long groupId) {

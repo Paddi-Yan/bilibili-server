@@ -24,10 +24,16 @@ public class RedisKey {
     public static final String VIDEO_COINS = APPLICATION_PREFIX + "video-coins:";
     public static final String VIDEO_COMMENTS_LIKE = APPLICATION_PREFIX + "video-comments-like:";
 
-    public static final String VIDEO_ROOT_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-root-comments-popularity";
+    public static final String VIDEO_ROOT_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-root-comments-popularity:";
 
-    public static final String VIDEO_CHILD_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-child-comments-popularity";
-    public static final String VIDEO_COMMENT_AREA = APPLICATION_PREFIX + "video-comment-area";
+    public static final String VIDEO_CHILD_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-child-comments-popularity:";
+    public static final String VIDEO_COMMENT_AREA = APPLICATION_PREFIX + "video-comment-area:";
 
-    public static final String VIDEO_COMMENT_COUNTER = APPLICATION_PREFIX + "video-comment-counter";
+    public static final String VIDEO_COMMENT_COUNTER = APPLICATION_PREFIX + "video-comment-counter:";
+    public static final String LOCK_SUFFIX = "lock:";
+
+    public static final String DANMAKU_ZSET =  APPLICATION_PREFIX + "danmaku-time:";
+
+
+    public static final String DANMAKU_HASH =  APPLICATION_PREFIX + "danmaku-content:";
 }

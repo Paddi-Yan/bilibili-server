@@ -58,6 +58,8 @@ public class Video {
      */
     private String area;
 
+    private Long commentAreaId;
+
     /**
      *标签列表
      */

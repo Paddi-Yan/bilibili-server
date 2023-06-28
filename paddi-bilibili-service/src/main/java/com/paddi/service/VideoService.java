@@ -1,6 +1,7 @@
 package com.paddi.service;
 
 import com.paddi.entity.dto.*;
+import com.paddi.entity.po.VideoCommentArea;
 import com.paddi.entity.vo.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -50,4 +51,6 @@ public interface VideoService {
     Long getVideoCommentLike(Long commentId);
 
     VideoDetailsVO getVideoDetails(Long userId, Long videoId) throws ExecutionException, InterruptedException;
+
+    VideoCommentArea getVideoCommentArea(Long videoId);
 }

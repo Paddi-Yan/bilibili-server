@@ -4,6 +4,7 @@ import com.paddi.constants.HttpStatus;
 import com.paddi.core.ret.Result;
 import com.paddi.exception.BadRequestException;
 import com.paddi.exception.ConditionException;
+import com.paddi.exception.NotContentException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -60,5 +61,11 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         String message = e.getAllErrors().get(0).getDefaultMessage();
         return Result.error(message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ResponseBody
+    @ExceptionHandler(NotContentException.class)
+    public Result notContentExceptionHandler(NotContentException e) {
+        return Result.error(e.getMessage(), e.getCode());
     }
 }

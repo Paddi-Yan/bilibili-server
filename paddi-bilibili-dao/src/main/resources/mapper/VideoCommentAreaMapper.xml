@@ -7,6 +7,6 @@
     <update id="increaseCommentCount">
         update t_video_comment_area
         set total_comment_count = total_comment_count + #{count}
-        where id = #{areaId}
+        where id = #{id}
     </update>
 </mapper>
