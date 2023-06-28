@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 import static com.paddi.constants.UserRoleConstants.ROLE_CODE_LV1;
@@ -34,7 +35,7 @@ public class UserMomentsController {
     @ApiLimitedRole(limitedRoleCodeList = {ROLE_CODE_LV1})
     @DataLimited
     @PostMapping("/user-moments")
-    public Result postMoments(@RequestBody UserMomentsDTO userMomentsDTO) {
+    public Result postMoments(@RequestBody @Valid UserMomentsDTO userMomentsDTO) {
         Long userId = userSupport.getCurrentUserId();
         userMomentsDTO.setUserId(userId);
         userMomentsService.postMoments(userMomentsDTO);

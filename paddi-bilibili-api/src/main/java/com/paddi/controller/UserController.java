@@ -38,7 +38,6 @@ public class UserController {
 
     @GetMapping("/other-users")
     public Result getUserInfo(@RequestParam Long queryUserId) {
-        //TODO 查询其他人的用户信息
         Long userId = userSupport.getCurrentUserId();
         UserInfoVO userInfo = userService.getUserInfo(userId, queryUserId);
         return Result.success(userInfo);
@@ -57,7 +56,7 @@ public class UserController {
     }
 
     @PostMapping("/user-tokens")
-    public Result<String> login(@RequestBody UserLoginDTO userLoginDTO) throws Exception {
+    public Result<String> login(@RequestBody @Valid UserLoginDTO userLoginDTO) throws Exception {
         String token = userService.login(userLoginDTO);
         return Result.success(token);
     }

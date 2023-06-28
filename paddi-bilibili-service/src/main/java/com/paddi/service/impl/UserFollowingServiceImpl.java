@@ -70,7 +70,6 @@ public class UserFollowingServiceImpl implements UserFollowingService {
         if(user == null) {
             throw new ConditionException("关注的用户不存在!");
         }
-        //TODO 已经关注如何处理
         userFollowingMapper.delete(new LambdaQueryWrapper<UserFollowing>()
                 .eq(UserFollowing::getUserId, userFollowingDTO.getUserId())
                 .eq(UserFollowing::getFollowingId, userFollowingDTO.getFollowingId()));
@@ -143,7 +142,6 @@ public class UserFollowingServiceImpl implements UserFollowingService {
             FollowingGroupVO followingGroupVO = new FollowingGroupVO(followingGroup, currentGroupUserInfoList);
             userFollowingGroupList.add(followingGroupVO);
         }
-        //TODO 将关注列表按照关注先后进行排序还是按照名称进行排序
         return userFollowingGroupList;
     }
 

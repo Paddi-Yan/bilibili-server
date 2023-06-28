@@ -27,4 +27,7 @@ public class RedisKey {
     public static final String VIDEO_ROOT_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-root-comments-popularity";
 
     public static final String VIDEO_CHILD_COMMENTS_POPULARITY = APPLICATION_PREFIX + "video-child-comments-popularity";
+    public static final String VIDEO_COMMENT_AREA = APPLICATION_PREFIX + "video-comment-area";
+
+    public static final String VIDEO_COMMENT_COUNTER = APPLICATION_PREFIX + "video-comment-counter";
 }

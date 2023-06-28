@@ -4,6 +4,17 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.paddi.mapper.VideoCommentMapper">
 
+    <insert id="insertCommentContent" useGeneratedKeys="true">
+        insert into t_video_comment_content(content) values(#{comment});
+    </insert>
+    
+    <update id="updateReplyCommentCount">
+        update t_video_comment
+        set child_comment_count = #{value}
+        where id = #{id}
+        and child_comment_count = #{expect}
+    </update>
+
     <select id="pageListVideoRootComments" resultType="com.paddi.entity.po.VideoComment">
         select *
         from t_video_comment

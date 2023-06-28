@@ -11,6 +11,7 @@ import com.paddi.support.UserSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -28,7 +29,7 @@ public class UserFollowingController {
     private UserSupport userSupport;
 
     @PostMapping("/user-followings")
-    public Result addUserFollowings(@RequestBody UserFollowingDTO userFollowingDTO) {
+    public Result addUserFollowings(@RequestBody @Valid UserFollowingDTO userFollowingDTO) {
         Long userId = userSupport.getCurrentUserId();
         userFollowingDTO.setUserId(userId);
         userFollowingService.addUserFollowings(userFollowingDTO);
@@ -50,7 +51,7 @@ public class UserFollowingController {
     }
 
     @PostMapping("/user-following-groups")
-    public Result addUserFollowingGroups(@RequestBody FollowingGroupDTO followingGroupDTO) {
+    public Result addUserFollowingGroups(@RequestBody @Valid FollowingGroupDTO followingGroupDTO) {
         Long userId = userSupport.getCurrentUserId();
         followingGroupDTO.setUserId(userId);
         Long groupId = userFollowingService.addUserFollowingGroups(followingGroupDTO);

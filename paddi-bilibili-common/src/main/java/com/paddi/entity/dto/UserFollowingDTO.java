@@ -2,6 +2,8 @@ package com.paddi.entity.dto;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * @Author: Paddi-Yan
  * @Project: paddi-bilibili-server
@@ -9,8 +11,10 @@ import lombok.Data;
  */
 @Data
 public class UserFollowingDTO {
+
     private Long userId;
 
+    @NotNull(message = "关注用户编号不能为空")
     private Long followingId;
 
     private Long groupId;

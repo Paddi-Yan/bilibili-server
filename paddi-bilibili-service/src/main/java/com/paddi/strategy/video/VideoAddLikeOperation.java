@@ -28,7 +28,6 @@ public class VideoAddLikeOperation implements VideoOperation{
 
     @Override
     public void execute(VideoOperationMessage message) {
-        //TODO 分布式锁保证幂等性
         Boolean notExecute = videoMapper.getVideoLikeByVideoIdAndUserId(message.getVideoId(), message.getUserId()) == null;
         if(notExecute) {
             VideoLike videoLike = new VideoLike(message.getUserId(), message.getVideoId(), LocalDateTime.now());

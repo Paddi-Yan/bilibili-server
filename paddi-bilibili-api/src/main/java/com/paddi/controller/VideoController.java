@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 /**
  * @Author: Paddi-Yan
@@ -26,7 +27,7 @@ public class VideoController {
     private UserSupport userSupport;
 
     @PostMapping("/videos")
-    public Result postVideo(@RequestBody VideoPostDTO videoPostDTO) {
+    public Result postVideo(@RequestBody @Valid VideoPostDTO videoPostDTO) {
         Long userId = userSupport.getCurrentUserId();
         videoPostDTO.setUserId(userId);
         videoService.postVideo(videoPostDTO);
@@ -71,7 +72,7 @@ public class VideoController {
     }
 
     @PostMapping("/video-collections")
-    public Result addVideoCollection(@RequestBody VideoCollectionDTO videoCollectionDTO) {
+    public Result addVideoCollection(@RequestBody @Valid VideoCollectionDTO videoCollectionDTO) {
         Long userId = userSupport.getCurrentUserId();
         videoService.addVideoCollection(userId, videoCollectionDTO.getVideoId(), videoCollectionDTO.getGroupId());
         return Result.success();
@@ -95,7 +96,7 @@ public class VideoController {
     }
 
     @PostMapping("/video-coins")
-    public Result addVideoCoins(@RequestBody VideoCoinsDTO videoCoinsDTO) {
+    public Result addVideoCoins(@RequestBody @Valid VideoCoinsDTO videoCoinsDTO) {
         Long userId = userSupport.getCurrentUserId();
         videoService.addVideoCoins(userId, videoCoinsDTO.getVideoId(), videoCoinsDTO.getAmount());
         return Result.success();
@@ -112,10 +113,10 @@ public class VideoController {
     }
 
     @PostMapping("/video-comments")
-    public Result addVideoComments(@RequestBody VideoCommentAddDTO videoCommentAddDTO) {
+    public Result addVideoComments(@RequestBody @Valid VideoCommentAddDTO videoCommentAddDTO) {
         Long userId = userSupport.getCurrentUserId();
-        videoService.addVideoComment(userId, videoCommentAddDTO);
-        return Result.success();
+        VideoCommentAddVO result = videoService.addVideoComment(userId, videoCommentAddDTO);
+        return Result.success(result);
     }
 
     @GetMapping("/video-comments")
@@ -129,7 +130,7 @@ public class VideoController {
     }
 
     @PostMapping("/video-comment-likes")
-    public Result addVideoCommentLiked(@RequestBody VideoCommentLikeDTO videoCommentLikeDTO) {
+    public Result addVideoCommentLiked(@RequestBody @Valid VideoCommentLikeDTO videoCommentLikeDTO) {
         Long userId = userSupport.getCurrentUserId();
         videoService.addVideoCommentLike(userId, videoCommentLikeDTO);
         return Result.success();

@@ -1,11 +1,14 @@
 package com.paddi.handler;
 
+import com.paddi.constants.HttpStatus;
 import com.paddi.core.ret.Result;
 import com.paddi.exception.BadRequestException;
 import com.paddi.exception.ConditionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -39,5 +42,23 @@ public class GlobalExceptionHandler {
     public Result<String> badRequestExceptionHandler(BadRequestException e) {
         log.error(e.getMessage());
         return Result.error(e.getMessage(), e.getCode());
+    }
+
+    /**
+     * 自定义验证异常
+     */
+    @ExceptionHandler(BindException.class)
+    public Result validatedBindException(BindException e) {
+        log.error(e.getMessage(), e);
+        String message = e.getAllErrors().get(0).getDefaultMessage();
+        return Result.error(message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ResponseBody
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result exceptionHandler2(MethodArgumentNotValidException e) {
+        log.error(e.getMessage(), e);
+        String message = e.getAllErrors().get(0).getDefaultMessage();
+        return Result.error(message, HttpStatus.BAD_REQUEST);
     }
 }

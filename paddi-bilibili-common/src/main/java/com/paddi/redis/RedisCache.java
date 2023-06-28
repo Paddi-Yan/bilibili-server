@@ -2,6 +2,7 @@ package com.paddi.redis;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.*;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -288,5 +289,9 @@ public class RedisCache
 
     public <E> Set<E> getCacheZSetValues(String key, int startIndex, int endIndex) {
         return redisTemplate.opsForZSet().reverseRange(key, startIndex, endIndex);
+    }
+
+    public Integer execute(RedisScript script, List<String> keys, Object... args) {
+        return (Integer) redisTemplate.execute(script, keys, args);
     }
 }

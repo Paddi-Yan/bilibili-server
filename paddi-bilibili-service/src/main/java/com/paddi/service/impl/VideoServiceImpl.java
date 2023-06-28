@@ -2,6 +2,7 @@ package com.paddi.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.collection.ListUtil;
+import cn.hutool.core.util.BooleanUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.PageHelper;
@@ -12,13 +13,12 @@ import com.paddi.entity.dto.*;
 import com.paddi.entity.po.*;
 import com.paddi.entity.vo.*;
 import com.paddi.enums.SortType;
+import com.paddi.enums.VideoCommentOperationType;
 import com.paddi.enums.VideoOperationType;
 import com.paddi.enums.VideoType;
 import com.paddi.exception.BadRequestException;
-import com.paddi.mapper.VideoCoinMapper;
-import com.paddi.mapper.VideoCollectionGroupMapper;
-import com.paddi.mapper.VideoCommentMapper;
-import com.paddi.mapper.VideoMapper;
+import com.paddi.mapper.*;
+import com.paddi.message.VideoCommentMessage;
 import com.paddi.message.VideoOperationMessage;
 import com.paddi.redis.RedisCache;
 import com.paddi.service.UserCoinService;
@@ -42,8 +42,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.paddi.constants.RocketMQConstants.VIDEO_COMMENT_TOPIC;
 import static com.paddi.constants.RocketMQConstants.VIDEO_TOPIC;
 import static com.paddi.constants.SystemConstants.BATCH_SIZE;
+import static com.paddi.message.VideoCommentMessage.REPLY_USER_ID;
+import static com.paddi.message.VideoCommentMessage.ROOT_COMMENT_ID;
 import static com.paddi.message.VideoOperationMessage.COLLECTION_GROUP_ID;
 
 /**
@@ -81,6 +84,9 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private VideoCommentAreaMapper videoCommentAreaMapper;
 
 
     @Override
@@ -326,14 +332,42 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public void addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO) {
+    public VideoCommentAddVO addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO) {
         Long videoId = videoCommentAddDTO.getVideoId();
         Video video = videoMapper.selectById(videoId);
-        AssertUtils.isNull(video, new BadRequestException("视频不存在!"));
-        VideoComment videoComment = new VideoComment(videoCommentAddDTO);
-        videoComment.setUserId(userId);
-        videoComment.setCreateTime(LocalDateTime.now());
-        videoCommentMapper.insert(videoComment);
+        VideoCommentArea videoCommentArea = videoCommentAreaMapper.selectById(videoCommentAddDTO.getCommentAreaId());
+        AssertUtils.isNull(new BadRequestException("参数错误!"), video, videoCommentArea);
+        AssertUtils.isError(BooleanUtil.isFalse(videoCommentArea.getStatus()), new BadRequestException("评论区已关闭"));
+        Long replyUserId = videoCommentAddDTO.getReplyUserId();
+        if(replyUserId != null) {
+            User replyUser = userService.getUserById(replyUserId);
+            AssertUtils.isNull(replyUser, new BadRequestException("参数错误!"));
+        }
+        Long rootId = videoCommentAddDTO.getRootId();
+        if(rootId != null) {
+            VideoComment rootComment = videoCommentMapper.selectById(rootId);
+            AssertUtils.isNull(rootComment, new BadRequestException("参数错误!"));
+        }
+
+        //TODO 内容审核
+        //审核完毕
+        String comment = videoCommentAddDTO.getComment();
+        VideoCommentAddVO result = new VideoCommentAddVO(comment, LocalDateTime.now());
+
+        HashMap<String, Long> attachments = new HashMap<>();
+        attachments.put(ROOT_COMMENT_ID, rootId);
+        attachments.put(REPLY_USER_ID, replyUserId);
+        VideoCommentMessage message = VideoCommentMessage.builder()
+                                                       .userId(userId)
+                                                       .videoId(videoId)
+                                                       .commentAreaId(videoCommentArea.getId())
+                                                       .comment(comment)
+                                                       .operationType(VideoCommentOperationType.ADD_COMMENT)
+                                                       .attachments(attachments).build();
+        //以评论区为维度串行处理
+        rocketMQTemplate.syncSendOrderly(VIDEO_COMMENT_TOPIC, JSON.toJSONString(message), String.valueOf(videoCommentArea.getId()));
+        //返回评论发布结果给前端完成一次交互
+        return result;
     }
 
     /**
@@ -494,7 +528,6 @@ public class VideoServiceImpl implements VideoService {
             param.setPageParam(new PageParam(1, 20));
             return pageListVideoComments(userId, param, SortType.DEFAULT.getValue());
         });
-        //TODO 根据热度查询视频评论信息
         CompletableFuture<UserInfoVO> userInfoFuture = videoFuture.thenApply(videoVO -> userService.getUserInfo(userId, videoVO.getUserId()));
         CompletableFuture<VideoDetailsVO> videoDetailsFuture = CompletableFuture.allOf(videoFuture, videoLikesFuture, videoCoinsFuture, videoCollectionsFuture, userInfoFuture, videoCommentsFuture)
                                                                 .thenApply(result -> {

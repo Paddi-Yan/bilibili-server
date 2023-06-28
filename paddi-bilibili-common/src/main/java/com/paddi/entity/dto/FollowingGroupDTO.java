@@ -2,6 +2,8 @@ package com.paddi.entity.dto;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+
 /**
  * @Author: Paddi-Yan
  * @Project: paddi-bilibili-server
@@ -11,5 +13,6 @@ import lombok.Data;
 public class FollowingGroupDTO {
     private Long userId;
 
+    @NotBlank(message = "关注分组名称不能为空")
     private String name;
 }

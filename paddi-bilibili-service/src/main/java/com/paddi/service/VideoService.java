@@ -38,7 +38,7 @@ public interface VideoService {
 
     VideoStatisticsDataVO getVideoCoins(Long videoId, Long userId);
 
-    void addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO);
+    VideoCommentAddVO addVideoComment(Long userId, VideoCommentAddDTO videoCommentAddDTO);
 
     PageResult<VideoCommentVO> pageListVideoComments(Long userId, VideoCommentPageListDTO videoCommentPageListDTO,
                                                      Integer sortType);

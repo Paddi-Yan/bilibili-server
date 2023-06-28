@@ -27,11 +27,13 @@ public class VideoComment {
 
     private Long userId;
 
-    private String comment;
+    private Long contentId;
 
     private Long replyUserId;
 
     private Long rootId;
+
+    private Integer childCommentCount;
 
     private LocalDateTime createTime;
 
@@ -45,6 +47,9 @@ public class VideoComment {
 
     @TableField(exist = false)
     private UserInfo replyUserInfo;
+
+
+
 
     public VideoComment(VideoCommentAddDTO videoCommentAddDTO) {
         if(videoCommentAddDTO != null) {

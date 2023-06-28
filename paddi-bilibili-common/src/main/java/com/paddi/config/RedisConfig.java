@@ -28,7 +28,6 @@ public class RedisConfig extends CachingConfigurerSupport
     {
         RedisTemplate<Object, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
         FastJson2JsonRedisSerializer serializer = new FastJson2JsonRedisSerializer(Object.class);
 
         ObjectMapper mapper = new ObjectMapper();

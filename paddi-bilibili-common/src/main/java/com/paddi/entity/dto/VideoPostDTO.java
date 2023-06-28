@@ -2,6 +2,7 @@ package com.paddi.entity.dto;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
 import java.util.List;
 
 /**
@@ -20,6 +21,7 @@ public class VideoPostDTO {
     /**
      * 视频链接
      */
+    @NotBlank(message = "视频地址不能为空")
     private String url;
 
     /**
@@ -30,6 +32,7 @@ public class VideoPostDTO {
     /**
      * 标题
      */
+    @NotBlank(message = "视频标题不能为空")
     private String title;
 
     /**
@@ -40,6 +43,7 @@ public class VideoPostDTO {
     /**
      * 时长
      */
+    @NotBlank(message = "视频时长不能为空")
     private String duration;
 
     /**
@@ -55,5 +59,6 @@ public class VideoPostDTO {
     /**
      * 简介
      */
+    @NotBlank(message = "视频简介不能为空")
     private String description;
 }
